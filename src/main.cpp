@@ -160,11 +160,17 @@ void render() {
   tri[2].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy2);
   tri[3].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy2);
   player.anim++;
-  if(player.anim>179)player.anim=0;
-  tri[0].texCoords=sf::Vector2f(0,0);
-  tri[1].texCoords=sf::Vector2f((player.hitboxx2-player.hitboxx1),0);
-  tri[2].texCoords=sf::Vector2f(0,player.hitboxy2-player.hitboxy1);
-  tri[3].texCoords=sf::Vector2f((player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+  if(player.anim>39)player.anim=0;
+  int anim=0;
+  switch(player.anim/10){
+    case 0:case 2:anim=0;break;
+    case 1:anim=1;break;
+    case 3:anim=2;break;
+  }
+  tri[0].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),0);
+  tri[1].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),0);
+  tri[2].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+  tri[3].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
   rt.draw(tri,&texturemap["Player"]);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
   tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
