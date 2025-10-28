@@ -1,6 +1,7 @@
 // Copyright 2025 Greenbox
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <unordered_map>
 sf::RenderTexture rt({160, 144});
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "The game trademark");
 char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0,start = 0;
@@ -14,6 +15,7 @@ sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   selectkey = sf::Keyboard::Key::C;
 sf::View view({0.f, 0.f}, {160.f, 144.f});
 bool groundcheck=false,doublejump=true,dash=true,floating=false;
+std::unordered_map<std::string,sf::Texture> texturemap;
 
 float Lerp(float A, float B, float Alpha) {
   return A * (1 - Alpha) + B * Alpha;
@@ -27,8 +29,9 @@ std::vector<ground> groundvector;
 struct entity{
     int x=0,y=0;
     float xvelocity=0,yvelocity=0;
-    int vertx=-4,verty=-1,vertx2=4,verty2=0;
-    int hitboxx1=-4,hitboxy1=-8,hitboxx2=4,hitboxy2=0;
+    int vertx=-8,verty=-1,vertx2=8,verty2=0;
+    int hitboxx1=-8,hitboxy1=-16,hitboxx2=8,hitboxy2=0;
+    int anim=0;
 };
 entity player;
 
@@ -151,12 +154,18 @@ void render() {
     tri[3].position=sf::Vector2f(groundvector[i].x+groundvector[i].x2,groundvector[i].y+groundvector[i].y2);
     rt.draw(tri);
   }
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::Blue;
+  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   tri[0].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy1);
   tri[1].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy1);
   tri[2].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy2);
   tri[3].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy2);
-  rt.draw(tri);
+  player.anim++;
+  if(player.anim>179)player.anim=0;
+  tri[0].texCoords=sf::Vector2f(0,0);
+  tri[1].texCoords=sf::Vector2f((player.hitboxx2-player.hitboxx1),0);
+  tri[2].texCoords=sf::Vector2f(0,player.hitboxy2-player.hitboxy1);
+  tri[3].texCoords=sf::Vector2f((player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+  rt.draw(tri,&texturemap["Player"]);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
   tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
   tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
@@ -169,7 +178,8 @@ void render() {
   window.draw(temp);
   window.display();
 }
-void init() {
+int init() {
+  if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png"))return -1;
   view.setCenter({float(player.x+64),-64});
   window.setFramerateLimit(60);
   window.setVerticalSyncEnabled(true);
@@ -178,9 +188,10 @@ void init() {
 
   groundvector[1]=ground{128,-48,32,1};
   groundvector[2]=ground{192,-48,32,1};
+  return 0;
 }
 int main() {
-  init();
+  if(init()==-1)return 0;
   while (window.isOpen()) {
     windowset();
     input();
