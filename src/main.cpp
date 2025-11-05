@@ -147,6 +147,16 @@ void render() {
   rt.clear();
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+  tri[0].position=sf::Vector2f(player.x+64-128,-120-64);
+  tri[1].position=sf::Vector2f(player.x+64+128,-120-64);
+  tri[2].position=sf::Vector2f(player.x+64-128,120-64);
+  tri[3].position=sf::Vector2f(player.x+64+128,120-64);
+  tri[0].texCoords=sf::Vector2f(0,0);
+  tri[1].texCoords=sf::Vector2f(256,0);
+  tri[2].texCoords=sf::Vector2f(0,240);
+  tri[3].texCoords=sf::Vector2f(256,240);
+  rt.draw(tri,&texturemap["Background1"]);
+  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   for(int i=0;i<groundvector.size();i++){
     tri[0].position=sf::Vector2f(groundvector[i].x,groundvector[i].y);
     tri[1].position=sf::Vector2f(groundvector[i].x+groundvector[i].x2,groundvector[i].y);
@@ -172,12 +182,12 @@ void render() {
   tri[2].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
   tri[3].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
   rt.draw(tri,&texturemap["Player"]);
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
-  tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
-  tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
-  tri[2].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty2);
-  tri[3].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty2);
-  rt.draw(tri);
+  // for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
+  // tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
+  // tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
+  // tri[2].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty2);
+  // tri[3].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty2);
+  // rt.draw(tri);
 
   rt.display();
   sf::Sprite temp(rt.getTexture());
@@ -185,7 +195,8 @@ void render() {
   window.display();
 }
 int init() {
-  if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png"))return -1;
+  if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
+  !texturemap["Background1"].loadFromFile("assets/images/Background.png"))return -1;
   view.setCenter({float(player.x+64),-64});
   window.setFramerateLimit(60);
   window.setVerticalSyncEnabled(true);
