@@ -98,15 +98,15 @@ void update() {
   
   collisioncheck();
 
-  if(groundcheck){player.yvelocity=0;doublejump=true;}
-  else player.yvelocity+=0.5f*(floating&&player.yvelocity>0?0.125f:1);
+  if(groundcheck){player.yvelocity=0;doublejump=true;}//더블 점프 활성화 + 땅에 있을시에 y가속도 0으로 설정
+  else player.yvelocity+=0.5f*(floating&&player.yvelocity>0?0.125f:1);//중력
 
   if(player.xvelocity>2)player.xvelocity-=0.5f;
 
   if(player.xvelocity>2)player.xvelocity-=0.5;
   if(player.xvelocity<2)player.xvelocity=2;
   if(player.xvelocity==2&&groundcheck)dash=true;
-  if(confirm==2){
+  if(confirm==2){//점프
     floating=false;
     if(groundcheck)player.yvelocity=-7;
     else if(doublejump){doublejump=false;player.yvelocity=-7;}
