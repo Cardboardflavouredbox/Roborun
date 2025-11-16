@@ -3,8 +3,8 @@
 #include <vector>
 #include <unordered_map>
 sf::RenderTexture rt({160, 144});
-auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "The game trademark");
-char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0,start = 0;
+auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
+char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0,start = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
 sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   downkey = sf::Keyboard::Key::Down,
                   upkey = sf::Keyboard::Key::Up,
@@ -14,28 +14,32 @@ sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   startkey = sf::Keyboard::Key::Enter,
                   selectkey = sf::Keyboard::Key::C;
 sf::View view({0.f, 0.f}, {160.f, 144.f});
-bool groundcheck=false,doublejump=true,dash=true,floating=false;
-std::unordered_map<std::string,sf::Texture> texturemap;
+bool groundcheck=false;//땅에 닿았는지 여부
+bool doublejump=true;//더블점프 가능 여부
+bool dash=true;//대시 가능 여부
+bool floating=false;//호버링 하고 있는지
+std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
-float Lerp(float A, float B, float Alpha) {
+float Lerp(float A, float B, float Alpha) {//선형 보간 함수
   return A * (1 - Alpha) + B * Alpha;
 }
 
 
-struct ground{
+struct ground{//땅 클래스
     int x,y,x2,y2;
 };
-std::vector<ground> groundvector;
-struct entity{
+std::vector<ground> groundvector;//땅의 데이터가 저장된 벡터
+struct entity{//엔티티 클래스
     int x=0,y=0;
-    float xvelocity=0,yvelocity=0;
+    float xvelocity=0;//X 속도
+    float yvelocity=0;//Y 속도
     int vertx=-8,verty=-1,vertx2=8,verty2=0;
     int hitboxx1=-8,hitboxy1=-16,hitboxx2=8,hitboxy2=0;
     int anim=0;
 };
-entity player;
+entity player;//플레이어
 
-bool overlap(entity p,ground g)
+bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
 {
    if (p.vertx+p.x >= g.x+g.x2 || g.x >= p.vertx2+p.x )
         return false;
@@ -46,7 +50,7 @@ bool overlap(entity p,ground g)
     return true;
 }
 
-void windowset(){
+void windowset(){//윈도우 설정용 함수
   while (std::optional event = window.pollEvent()) {
     if (event->is<sf::Event::Closed>()) {
       window.close();
@@ -68,18 +72,18 @@ void windowset(){
   }
 }
 
-void keypresscheck(sf::Keyboard::Key keycode, char* key) {
+void keypresscheck(sf::Keyboard::Key keycode, char* key) {//키 인식 함수
   if (sf::Keyboard::isKeyPressed(keycode)) {
     if (*key == 0)
-      *key = 2;
+      *key = 2;//2=지금 눌렀을때
     else if (*key == 2)
-      *key = 1;
+      *key = 1;//1=꾹 누르고 있을때
   } else {
-    *key = 0;
+    *key = 0;//0=아예 안 누를때
   }
 }
 
-void collisioncheck(){
+void collisioncheck(){//땅 인식 함수
   groundcheck=false;
   player.y++;
   for(int i=0;i<groundvector.size();i++){
@@ -101,21 +105,20 @@ void update() {
   if(groundcheck){player.yvelocity=0;doublejump=true;}//더블 점프 활성화 + 땅에 있을시에 y가속도 0으로 설정
   else player.yvelocity+=0.5f*(floating&&player.yvelocity>0?0.125f:1);//중력
 
-  if(player.xvelocity>2)player.xvelocity-=0.5f;
+  if(player.xvelocity>2)player.xvelocity-=0.5f;//X속도가 2보다 크다면 0.5씩 감소
 
-  if(player.xvelocity>2)player.xvelocity-=0.5;
   if(player.xvelocity<2)player.xvelocity=2;
   if(player.xvelocity==2&&groundcheck)dash=true;
-  if(confirm==2){//점프
+  if(confirm==2){//점프 키를 눌렀을 시
     floating=false;
-    if(groundcheck)player.yvelocity=-7;
-    else if(doublejump){doublejump=false;player.yvelocity=-7;}
+    if(groundcheck)player.yvelocity=-7;//땅에 닿았을 시 점프
+    else if(doublejump){doublejump=false;player.yvelocity=-7;}//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
   }
-  else if(confirm==1){
+  else if(confirm==1){//점프 키를 꾹 눌렀을 시
     floating=true;
   }
   else floating=false;
-  if(select==2&&dash){
+  if(select==2&&dash){//대시 가능하고 셀렉트 키(C)를 눌렀을 시
     floating=false;
     dash=false;
     player.xvelocity=10;
@@ -130,7 +133,7 @@ void update() {
   }
 }
 
-void input(){
+void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   keypresscheck(rightkey,&right);
   keypresscheck(leftkey,&left);
   keypresscheck(upkey,&up);
