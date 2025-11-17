@@ -101,10 +101,11 @@ void groundcollisioncheck(){//땅 인식 함수
   if(!groundcheck)player.y--;
 }
 
-void obstaclecollisioncheck(){//땅 인식 함수
+void obstaclecollisioncheck(){//장애물 인식 함수
   for(int i=0;i<obstaclevector.size();i++){
     if(overlap(player,obstaclevector[i])){
       hp--;
+      player.xvelocity=0;
       iframes=96;
       break;
       }
@@ -123,7 +124,7 @@ void update() {
 
   if(player.xvelocity>2)player.xvelocity-=0.5f;//X속도가 2보다 크다면 0.5씩 감소
 
-  if(player.xvelocity<2)player.xvelocity=2;
+  if(player.xvelocity<2)player.xvelocity+=0.25f;
   if(player.xvelocity==2&&groundcheck)dash=true;
   if(confirm==2){//점프 키를 눌렀을 시
     floating=false;
@@ -147,6 +148,9 @@ void update() {
     groundcollisioncheck();
     if(groundcheck){player.yvelocity=0;doublejump=true;}
   }
+
+  if(iframes>0)iframes--;
+  else obstaclecollisioncheck();
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
@@ -197,29 +201,31 @@ void render() {//랜더 함수
     tri[3].position=sf::Vector2f(obstaclevector[i].x+obstaclevector[i].x2,obstaclevector[i].y+obstaclevector[i].y2);
     rt.draw(tri);
   }
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  tri[0].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy1);
-  tri[1].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy1);
-  tri[2].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy2);
-  tri[3].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy2);
-  player.anim++;
-  if(player.anim>39)player.anim=0;
-  int anim=0;
-  if(player.xvelocity>2)anim=4;
-  else if(!groundcheck){
-    if(player.yvelocity<0)anim=3;
+  if((iframes/4)%2==0){
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+    tri[0].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy1);
+    tri[1].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy1);
+    tri[2].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy2);
+    tri[3].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy2);
+    player.anim++;
+    if(player.anim>39)player.anim=0;
+    int anim=0;
+    if(player.xvelocity>2)anim=4;
+    else if(!groundcheck){
+      if(player.yvelocity<0)anim=3;
+    }
+    else
+    switch(player.anim/10){
+      case 0:case 2:anim=0;break;
+      case 1:anim=1;break;
+      case 3:anim=2;break;
+    }
+    tri[0].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),0);
+    tri[1].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),0);
+    tri[2].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+    tri[3].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+    rt.draw(tri,&texturemap["Player"]);
   }
-  else
-  switch(player.anim/10){
-    case 0:case 2:anim=0;break;
-    case 1:anim=1;break;
-    case 3:anim=2;break;
-  }
-  tri[0].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),0);
-  tri[1].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),0);
-  tri[2].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
-  tri[3].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
-  rt.draw(tri,&texturemap["Player"]);
   // for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
   // tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
   // tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
@@ -264,6 +270,8 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
 
   obstaclevector.resize(1);
   obstaclevector[0]=ground{96,-32,8,32};
+
+  player.xvelocity=2;
   return 0;
 }
 int main() {
