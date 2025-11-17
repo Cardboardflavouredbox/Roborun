@@ -20,6 +20,7 @@ bool doublejump=true;//더블점프 가능 여부
 bool dash=true;//대시 가능 여부
 bool floating=false;//호버링 하고 있는지
 char hp=3;//체력
+char iframes=0;//무적프레임
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -31,6 +32,7 @@ struct ground{//땅 클래스
     int x,y,x2,y2;
 };
 std::vector<ground> groundvector;//땅의 데이터가 저장된 벡터
+std::vector<ground> obstaclevector;//장애물의 데이터가 저장된 벡터
 struct entity{//엔티티 클래스
     int x=0,y=0;
     float xvelocity=0;//X 속도
@@ -40,6 +42,7 @@ struct entity{//엔티티 클래스
     int anim=0;
 };
 entity player;//플레이어
+
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
 {
@@ -85,7 +88,7 @@ void keypresscheck(sf::Keyboard::Key keycode, char* key) {//키 인식 함수
   }
 }
 
-void collisioncheck(){//땅 인식 함수
+void groundcollisioncheck(){//땅 인식 함수
   groundcheck=false;
   player.y++;
   for(int i=0;i<groundvector.size();i++){
@@ -98,11 +101,22 @@ void collisioncheck(){//땅 인식 함수
   if(!groundcheck)player.y--;
 }
 
+void obstaclecollisioncheck(){//땅 인식 함수
+  for(int i=0;i<obstaclevector.size();i++){
+    if(overlap(player,obstaclevector[i])){
+      hp--;
+      iframes=96;
+      break;
+      }
+  }
+}
+
+
 
 void update() {
   view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
   
-  collisioncheck();
+  groundcollisioncheck();
 
   if(groundcheck){player.yvelocity=0;doublejump=true;}//더블 점프 활성화 + 땅에 있을시에 y가속도 0으로 설정
   else player.yvelocity+=0.5f*(floating&&player.yvelocity>0?0.125f:1);//중력
@@ -125,12 +139,12 @@ void update() {
     dash=false;
     player.xvelocity=10;
   }
-  collisioncheck();
+  groundcollisioncheck();
   player.x+=player.xvelocity;
   if(player.yvelocity<0)player.y+=player.yvelocity;
   else for(int i=0;i<player.yvelocity;i++){
     player.y++;
-    collisioncheck();
+    groundcollisioncheck();
     if(groundcheck){player.yvelocity=0;doublejump=true;}
   }
 }
@@ -150,6 +164,7 @@ void render() {//랜더 함수
   rt.setView(view);
   window.clear();//원도우 클리어
   rt.clear();//랜더 텍스쳐 클리어
+  uirt.clear(sf::Color::Transparent);//UI 랜더 텍스쳐 클리어
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   tri[0].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,-72-64);
@@ -172,6 +187,14 @@ void render() {//랜더 함수
     tri[1].position=sf::Vector2f(groundvector[i].x+groundvector[i].x2,groundvector[i].y);
     tri[2].position=sf::Vector2f(groundvector[i].x,groundvector[i].y+groundvector[i].y2);
     tri[3].position=sf::Vector2f(groundvector[i].x+groundvector[i].x2,groundvector[i].y+groundvector[i].y2);
+    rt.draw(tri);
+  }
+  for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
+  for(int i=0;i<obstaclevector.size();i++){
+    tri[0].position=sf::Vector2f(obstaclevector[i].x,obstaclevector[i].y);
+    tri[1].position=sf::Vector2f(obstaclevector[i].x+obstaclevector[i].x2,obstaclevector[i].y);
+    tri[2].position=sf::Vector2f(obstaclevector[i].x,obstaclevector[i].y+obstaclevector[i].y2);
+    tri[3].position=sf::Vector2f(obstaclevector[i].x+obstaclevector[i].x2,obstaclevector[i].y+obstaclevector[i].y2);
     rt.draw(tri);
   }
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
@@ -207,6 +230,23 @@ void render() {//랜더 함수
   rt.display();
   sf::Sprite temp(rt.getTexture());
   window.draw(temp);
+
+  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+  tri[0].position=sf::Vector2f(0,0);
+  tri[1].position=sf::Vector2f(16,0);
+  tri[2].position=sf::Vector2f(0,16);
+  tri[3].position=sf::Vector2f(16,16);
+  for(int i=0;i<3;i++){
+    if(i<hp){
+      uirt.draw(tri);
+      for(int j=0;j<4;j++)tri[j].position+=sf::Vector2f(16,0);
+    }
+  }
+
+  uirt.display();
+  temp.setTexture(uirt.getTexture(),true);
+  window.draw(temp);
+  
   window.display();
 }
 int init() {//프로그램 시작시 준비 시키는 함수(?)
@@ -221,6 +261,9 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
 
   groundvector[1]=ground{128,-48,32,1};
   groundvector[2]=ground{192,-48,32,1};
+
+  obstaclevector.resize(1);
+  obstaclevector[0]=ground{96,-32,8,32};
   return 0;
 }
 int main() {
