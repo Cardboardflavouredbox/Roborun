@@ -21,6 +21,7 @@ bool dash=true;//대시 가능 여부
 bool floating=false;//호버링 하고 있는지
 char hp=3;//체력
 char iframes=0;//무적프레임
+char attacking=0;//공격 양수일시 가로, 음수일시 세로
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -31,8 +32,13 @@ float Lerp(float A, float B, float Alpha) {//선형 보간 함수
 struct ground{//땅 클래스
     int x,y,x2,y2;
 };
+struct obstacle:ground{//장애물 클래스
+    bool destroyable=false;
+    bool bouncable=true;
+    bool destroyed=false;
+};
 std::vector<ground> groundvector;//땅의 데이터가 저장된 벡터
-std::vector<ground> obstaclevector;//장애물의 데이터가 저장된 벡터
+std::vector<obstacle> obstaclevector;//장애물의 데이터가 저장된 벡터
 struct entity{//엔티티 클래스
     int x=0,y=0;
     float xvelocity=0;//X 속도
@@ -46,10 +52,10 @@ entity player;//플레이어
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
 {
-   if (p.vertx+p.x >= g.x+g.x2 || g.x >= p.vertx2+p.x )
+   if (p.hitboxx1+p.x >= g.x+g.x2 || g.x >= p.hitboxx2+p.x )
         return false;
 
-    if (p.verty2+p.y  <= g.y || g.y2+g.y <= p.verty+p.y)
+    if (p.hitboxy2+p.y  <= g.y || g.y2+g.y <= p.hitboxy1+p.y)
         return false;
 
     return true;
@@ -103,7 +109,7 @@ void groundcollisioncheck(){//땅 인식 함수
 
 void obstaclecollisioncheck(){//장애물 인식 함수
   for(int i=0;i<obstaclevector.size();i++){
-    if(overlap(player,obstaclevector[i])){
+    if(!obstaclevector[i].destroyed&&overlap(player,obstaclevector[i])){
       hp--;
       player.xvelocity=0;
       iframes=96;
@@ -111,6 +117,24 @@ void obstaclecollisioncheck(){//장애물 인식 함수
       }
   }
 }
+
+void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
+  for(int i=0;i<obstaclevector.size();i++){
+    if(!obstaclevector[i].destroyed&&overlap(temp,obstaclevector[i])){
+      if(obstaclevector[i].destroyable)obstaclevector[i].destroyed=true;
+      if(attacking>0){
+        player.xvelocity=-2;
+      }
+      else if(obstaclevector[i].bouncable){
+        player.yvelocity=-5;
+        doublejump=true;
+        dash=true;
+      }
+      break;
+      }
+  }
+}
+
 
 
 
@@ -124,11 +148,14 @@ void update() {
 
   if(player.xvelocity>2)player.xvelocity-=0.5f;//X속도가 2보다 크다면 0.5씩 감소
 
+  if(attacking>0)attacking--;
+  else if(attacking<0)attacking++;
+
   if(player.xvelocity<2)player.xvelocity+=0.25f;
   if(player.xvelocity==2&&groundcheck)dash=true;
   if(confirm==2){//점프 키를 눌렀을 시
     floating=false;
-    if(groundcheck)player.yvelocity=-7;//땅에 닿았을 시 점프
+    if(groundcheck){player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
     else if(doublejump){doublejump=false;player.yvelocity=-7;}//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
   }
   else if(confirm==1){//점프 키를 꾹 눌렀을 시
@@ -139,6 +166,19 @@ void update() {
     floating=false;
     dash=false;
     player.xvelocity=10;
+  }
+  if(cancel==2){
+    floating=false;
+    if(groundcheck)attacking=2;
+    else attacking=-2;
+  }
+  if(attacking>0){
+    entity temp={player.x,player.y,0,0,0,0,0,0,4,-16,24,0};
+    attackcollisioncheck(temp);
+  }
+  else if(attacking<0){
+    entity temp={player.x,player.y,0,0,0,0,0,0,-8,0,8,20};
+    attackcollisioncheck(temp);
   }
   groundcollisioncheck();
   player.x+=player.xvelocity;
@@ -201,6 +241,24 @@ void render() {//랜더 함수
     tri[3].position=sf::Vector2f(obstaclevector[i].x+obstaclevector[i].x2,obstaclevector[i].y+obstaclevector[i].y2);
     rt.draw(tri);
   }
+  
+  if(attacking>0){
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
+    tri[0].position=sf::Vector2f(player.x+4,player.y-16);
+    tri[1].position=sf::Vector2f(player.x+24,player.y-16);
+    tri[2].position=sf::Vector2f(player.x+4,player.y);
+    tri[3].position=sf::Vector2f(player.x+24,player.y);
+    rt.draw(tri);
+  }
+  else if(attacking<0){
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
+    tri[0].position=sf::Vector2f(player.x-8,player.y);
+    tri[1].position=sf::Vector2f(player.x+8,player.y);
+    tri[2].position=sf::Vector2f(player.x-8,player.y+20);
+    tri[3].position=sf::Vector2f(player.x+8,player.y+20);
+    rt.draw(tri);
+  }
+
   if((iframes/4)%2==0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
     tri[0].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy1);
@@ -269,7 +327,7 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   groundvector[2]=ground{192,-48,32,1};
 
   obstaclevector.resize(1);
-  obstaclevector[0]=ground{96,-32,8,32};
+  obstaclevector[0]=obstacle{512,-32,16,32,false,true};
 
   player.xvelocity=2;
   return 0;
