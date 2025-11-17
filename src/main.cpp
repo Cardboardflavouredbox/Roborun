@@ -144,10 +144,10 @@ void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   keypresscheck(selectkey,&select);
 }
 
-void render() {
+void render() {//랜더 함수
   rt.setView(view);
-  window.clear();
-  rt.clear();
+  window.clear();//원도우 클리어
+  rt.clear();//랜더 텍스쳐 클리어
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   tri[0].position=sf::Vector2f(player.x+64-128,-120-64);
@@ -175,6 +175,11 @@ void render() {
   player.anim++;
   if(player.anim>39)player.anim=0;
   int anim=0;
+  if(player.xvelocity>2)anim=4;
+  else if(!groundcheck){
+    if(player.yvelocity<0)anim=3;
+  }
+  else
   switch(player.anim/10){
     case 0:case 2:anim=0;break;
     case 1:anim=1;break;
@@ -197,13 +202,14 @@ void render() {
   window.draw(temp);
   window.display();
 }
-int init() {
+int init() {//프로그램 시작시 준비 시키는 함수(?)
   if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
-  !texturemap["Background1"].loadFromFile("assets/images/Background.png"))return -1;
+  !texturemap["Background1"].loadFromFile("assets/images/Background.png"))return -1;//텍스쳐 파일 읽는 코드
   view.setCenter({float(player.x+64),-64});
-  window.setFramerateLimit(60);
+  window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
-  groundvector.resize(3);
+
+  groundvector.resize(3);//밟을 수 있는 땅의 개수
   groundvector[0]=ground{-32,0,4096,1};
 
   groundvector[1]=ground{128,-48,32,1};
