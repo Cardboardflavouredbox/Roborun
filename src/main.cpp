@@ -2,7 +2,8 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <unordered_map>
-sf::RenderTexture rt({160, 144});
+sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
+sf::RenderTexture uirt({160,144});//
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
 char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0,start = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
 sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
@@ -18,6 +19,7 @@ bool groundcheck=false;//땅에 닿았는지 여부
 bool doublejump=true;//더블점프 가능 여부
 bool dash=true;//대시 가능 여부
 bool floating=false;//호버링 하고 있는지
+char hp=3;//체력
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -150,14 +152,19 @@ void render() {//랜더 함수
   rt.clear();//랜더 텍스쳐 클리어
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  tri[0].position=sf::Vector2f(player.x+64-128,-120-64);
-  tri[1].position=sf::Vector2f(player.x+64+128,-120-64);
-  tri[2].position=sf::Vector2f(player.x+64-128,120-64);
-  tri[3].position=sf::Vector2f(player.x+64+128,120-64);
+  tri[0].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,-72-64);
+  tri[1].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,-72-64);
+  tri[2].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,72-64);
+  tri[3].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,72-64);
   tri[0].texCoords=sf::Vector2f(0,0);
-  tri[1].texCoords=sf::Vector2f(256,0);
-  tri[2].texCoords=sf::Vector2f(0,240);
-  tri[3].texCoords=sf::Vector2f(256,240);
+  tri[1].texCoords=sf::Vector2f(160,0);
+  tri[2].texCoords=sf::Vector2f(0,144);
+  tri[3].texCoords=sf::Vector2f(160,144);
+  for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(-160,0);
+  rt.draw(tri,&texturemap["Background1"]);
+  for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
+  rt.draw(tri,&texturemap["Background1"]);
+  for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
   rt.draw(tri,&texturemap["Background1"]);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   for(int i=0;i<groundvector.size();i++){
