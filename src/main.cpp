@@ -3,6 +3,7 @@
 #include <glaze/glaze.hpp>
 #include <deque>
 #include <unordered_map>
+#include <iostream>
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
 sf::RenderTexture uirt({160,144});//
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
@@ -214,19 +215,28 @@ void update() {
 }
 
 void debugupdate(){
-  if(select==2)auto error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
+  if(right==2)view.setCenter(view.getCenter()+sf::Vector2f(40,0));
+  if(left==2)view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
+  if(select==2){
+    auto error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
+    if(error){
+      std::string error_msg = glz::format_error(error, "assets/database/map.json");
+      std::cout << error_msg << '\n';
+    }
+  }
   if (click==2){
     ground temp;
-    temp.x = (sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x-80;
-    temp.y = (sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y-72;
-    temp.x2 = 8;
-    temp.y2 = 8;
+    temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
+    temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+    temp.x2 = 0;
+    temp.y2 = 0;
     currentmap.grounddeque.push_back(temp);
   }
   else if(click==1){
-    currentmap.grounddeque.back().x2 = (sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x-80-currentmap.grounddeque.back().x;
+    currentmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-currentmap.grounddeque.back().x;
     currentmap.grounddeque.back().y2 = 1;
   }
+  else if(!currentmap.grounddeque.empty()&&currentmap.grounddeque.back().x2==currentmap.grounddeque.back().x)currentmap.grounddeque.pop_back();
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
