@@ -1,0 +1,1 @@
+{"grounddeque":[{"x":-32,"y":0,"x2":4096,"y2":1},{"x":128,"y":-48,"x2":32,"y2":1},{"x":192,"y":-48,"x2":32,"y2":1}],"obstacledeque":[{"x":512,"y":-32,"x2":16,"y2":32,"destroyable":false,"bouncable":true,"destroyed":false}]}

@@ -1,6 +1,7 @@
 // Copyright 2025 Greenbox
 #include <SFML/Graphics.hpp>
-#include <vector>
+#include <glaze/glaze.hpp>
+#include <deque>
 #include <unordered_map>
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
 sf::RenderTexture uirt({160,144});//
@@ -32,13 +33,18 @@ float Lerp(float A, float B, float Alpha) {//선형 보간 함수
 struct ground{//땅 클래스
     int x,y,x2,y2;
 };
-struct obstacle:ground{//장애물 클래스
+struct obstacle{//장애물 클래스
+    int x,y,x2,y2;
     bool destroyable=false;
     bool bouncable=true;
     bool destroyed=false;
 };
-std::vector<ground> groundvector;//땅의 데이터가 저장된 벡터
-std::vector<obstacle> obstaclevector;//장애물의 데이터가 저장된 벡터
+struct map{
+  std::deque<ground> grounddeque;//땅의 데이터가 저장된 덱
+  std::deque<obstacle> obstacledeque;//장애물의 데이터가 저장된 덱
+};
+map currentmap;
+
 struct entity{//엔티티 클래스
     int x=0,y=0;
     float xvelocity=0;//X 속도
@@ -51,6 +57,17 @@ entity player;//플레이어
 
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
+{
+   if (p.hitboxx1+p.x >= g.x+g.x2 || g.x >= p.hitboxx2+p.x )
+        return false;
+
+    if (p.hitboxy2+p.y  <= g.y || g.y2+g.y <= p.hitboxy1+p.y)
+        return false;
+
+    return true;
+}
+
+bool overlap(entity p,obstacle g)//엔티티와 땅이 겹치는지 확인하는 함수
 {
    if (p.hitboxx1+p.x >= g.x+g.x2 || g.x >= p.hitboxx2+p.x )
         return false;
@@ -97,10 +114,10 @@ void keypresscheck(sf::Keyboard::Key keycode, char* key) {//키 인식 함수
 void groundcollisioncheck(){//땅 인식 함수
   groundcheck=false;
   player.y++;
-  for(int i=0;i<groundvector.size();i++){
-    if(overlap(player,groundvector[i])){
+  for(int i=0;i<currentmap.grounddeque.size();i++){
+    if(overlap(player,currentmap.grounddeque[i])){
       groundcheck=true;
-      while(overlap(player,groundvector[i]))player.y--;
+      while(overlap(player,currentmap.grounddeque[i]))player.y--;
       break;
       }
   }
@@ -108,8 +125,8 @@ void groundcollisioncheck(){//땅 인식 함수
 }
 
 void obstaclecollisioncheck(){//장애물 인식 함수
-  for(int i=0;i<obstaclevector.size();i++){
-    if(!obstaclevector[i].destroyed&&overlap(player,obstaclevector[i])){
+  for(int i=0;i<currentmap.obstacledeque.size();i++){
+    if(!currentmap.obstacledeque[i].destroyed&&overlap(player,currentmap.obstacledeque[i])){
       hp--;
       player.xvelocity=0;
       iframes=96;
@@ -119,13 +136,13 @@ void obstaclecollisioncheck(){//장애물 인식 함수
 }
 
 void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
-  for(int i=0;i<obstaclevector.size();i++){
-    if(!obstaclevector[i].destroyed&&overlap(temp,obstaclevector[i])){
-      if(obstaclevector[i].destroyable)obstaclevector[i].destroyed=true;
+  for(int i=0;i<currentmap.obstacledeque.size();i++){
+    if(!currentmap.obstacledeque[i].destroyed&&overlap(temp,currentmap.obstacledeque[i])){
+      if(currentmap.obstacledeque[i].destroyable)currentmap.obstacledeque[i].destroyed=true;
       if(attacking>0){
         player.xvelocity=-2;
       }
-      else if(obstaclevector[i].bouncable){
+      else if(currentmap.obstacledeque[i].bouncable){
         player.yvelocity=-5;
         doublejump=true;
         dash=true;
@@ -177,7 +194,7 @@ void update() {
     attackcollisioncheck(temp);
   }
   else if(attacking<0){
-    entity temp={player.x,player.y,0,0,0,0,0,0,-8,0,8,20};
+    entity temp={player.x,player.y,0,0,0,0,0,0,-12,-8,12,20};
     attackcollisioncheck(temp);
   }
   groundcollisioncheck();
@@ -226,19 +243,19 @@ void render() {//랜더 함수
   for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
   rt.draw(tri,&texturemap["Background1"]);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  for(int i=0;i<groundvector.size();i++){
-    tri[0].position=sf::Vector2f(groundvector[i].x,groundvector[i].y);
-    tri[1].position=sf::Vector2f(groundvector[i].x+groundvector[i].x2,groundvector[i].y);
-    tri[2].position=sf::Vector2f(groundvector[i].x,groundvector[i].y+groundvector[i].y2);
-    tri[3].position=sf::Vector2f(groundvector[i].x+groundvector[i].x2,groundvector[i].y+groundvector[i].y2);
+  for(int i=0;i<currentmap.grounddeque.size();i++){
+    tri[0].position=sf::Vector2f(currentmap.grounddeque[i].x,currentmap.grounddeque[i].y);
+    tri[1].position=sf::Vector2f(currentmap.grounddeque[i].x+currentmap.grounddeque[i].x2,currentmap.grounddeque[i].y);
+    tri[2].position=sf::Vector2f(currentmap.grounddeque[i].x,currentmap.grounddeque[i].y+currentmap.grounddeque[i].y2);
+    tri[3].position=sf::Vector2f(currentmap.grounddeque[i].x+currentmap.grounddeque[i].x2,currentmap.grounddeque[i].y+currentmap.grounddeque[i].y2);
     rt.draw(tri);
   }
   for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
-  for(int i=0;i<obstaclevector.size();i++){
-    tri[0].position=sf::Vector2f(obstaclevector[i].x,obstaclevector[i].y);
-    tri[1].position=sf::Vector2f(obstaclevector[i].x+obstaclevector[i].x2,obstaclevector[i].y);
-    tri[2].position=sf::Vector2f(obstaclevector[i].x,obstaclevector[i].y+obstaclevector[i].y2);
-    tri[3].position=sf::Vector2f(obstaclevector[i].x+obstaclevector[i].x2,obstaclevector[i].y+obstaclevector[i].y2);
+  for(int i=0;i<currentmap.obstacledeque.size();i++){
+    tri[0].position=sf::Vector2f(currentmap.obstacledeque[i].x,currentmap.obstacledeque[i].y);
+    tri[1].position=sf::Vector2f(currentmap.obstacledeque[i].x+currentmap.obstacledeque[i].x2,currentmap.obstacledeque[i].y);
+    tri[2].position=sf::Vector2f(currentmap.obstacledeque[i].x,currentmap.obstacledeque[i].y+currentmap.obstacledeque[i].y2);
+    tri[3].position=sf::Vector2f(currentmap.obstacledeque[i].x+currentmap.obstacledeque[i].x2,currentmap.obstacledeque[i].y+currentmap.obstacledeque[i].y2);
     rt.draw(tri);
   }
   
@@ -252,10 +269,10 @@ void render() {//랜더 함수
   }
   else if(attacking<0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
-    tri[0].position=sf::Vector2f(player.x-8,player.y);
-    tri[1].position=sf::Vector2f(player.x+8,player.y);
-    tri[2].position=sf::Vector2f(player.x-8,player.y+20);
-    tri[3].position=sf::Vector2f(player.x+8,player.y+20);
+    tri[0].position=sf::Vector2f(player.x-12,player.y-8);
+    tri[1].position=sf::Vector2f(player.x+12,player.y-8);
+    tri[2].position=sf::Vector2f(player.x-12,player.y+20);
+    tri[3].position=sf::Vector2f(player.x+12,player.y+20);
     rt.draw(tri);
   }
 
@@ -320,16 +337,13 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
 
-  groundvector.resize(3);//밟을 수 있는 땅의 개수
-  groundvector[0]=ground{-32,0,4096,1};
-
-  groundvector[1]=ground{128,-48,32,1};
-  groundvector[2]=ground{192,-48,32,1};
-
-  obstaclevector.resize(1);
-  obstaclevector[0]=obstacle{512,-32,16,32,false,true};
+  
 
   player.xvelocity=2;
+  auto error = glz::read_file_json(currentmap,"assets/database/map.json",std::string{});
+  if(error)return -1;
+  error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
+  if(error)return -1;
   return 0;
 }
 int main() {
