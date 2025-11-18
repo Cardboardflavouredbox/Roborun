@@ -7,7 +7,7 @@
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
 sf::RenderTexture uirt({160,144});//
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
-char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0, start = 0, click = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
+char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0, start = 0, save = 0, leftclick = 0, rightclick = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
 sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   downkey = sf::Keyboard::Key::Down,
                   upkey = sf::Keyboard::Key::Up,
@@ -15,7 +15,8 @@ sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   confirmkey = sf::Keyboard::Key::Z,
                   cancelkey = sf::Keyboard::Key::X,
                   startkey = sf::Keyboard::Key::Enter,
-                  selectkey = sf::Keyboard::Key::C;
+                  selectkey = sf::Keyboard::Key::C,
+                  savekey = sf::Keyboard::Key::S;
 sf::View view({0.f, 0.f}, {160.f, 144.f});
 bool groundcheck=false;//땅에 닿았는지 여부
 bool doublejump=true;//더블점프 가능 여부
@@ -57,6 +58,7 @@ struct entity{//엔티티 클래스
     int anim=0;
 };
 entity player;//플레이어
+entity debugdelete;//삭제판정
 
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
@@ -217,14 +219,14 @@ void update() {
 void debugupdate(){
   if(right==2)view.setCenter(view.getCenter()+sf::Vector2f(40,0));
   if(left==2)view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
-  if(select==2){
+  if(save==2){
     auto error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
     if(error){
       std::string error_msg = glz::format_error(error, "assets/database/map.json");
       std::cout << error_msg << '\n';
     }
   }
-  if (click==2){
+  if (leftclick==2){
     ground temp;
     temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
     temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
@@ -232,11 +234,23 @@ void debugupdate(){
     temp.y2 = 0;
     currentmap.grounddeque.push_back(temp);
   }
-  else if(click==1){
+  else if(leftclick==1){
     currentmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-currentmap.grounddeque.back().x;
     currentmap.grounddeque.back().y2 = 1;
   }
-  else if(!currentmap.grounddeque.empty()&&currentmap.grounddeque.back().x2==currentmap.grounddeque.back().x)currentmap.grounddeque.pop_back();
+  else if(rightclick==2){
+    debugdelete.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
+    debugdelete.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+    debugdelete.hitboxx1=0;debugdelete.hitboxy1=0;
+    debugdelete.hitboxx2=0;debugdelete.hitboxy2=0;
+  }
+  else if(rightclick==1){
+    debugdelete.hitboxx2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-debugdelete.x;
+    debugdelete.hitboxy2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizey+view.getCenter().y)-80)/(int)8)*8-debugdelete.y;
+  }
+  
+  if(rightclick==0)
+  if(leftclick==0&&!currentmap.grounddeque.empty()&&currentmap.grounddeque.back().x2==currentmap.grounddeque.back().x)currentmap.grounddeque.pop_back();
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
@@ -248,11 +262,17 @@ void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   keypresscheck(cancelkey,&cancel);
   keypresscheck(startkey,&start);
   keypresscheck(selectkey,&select);
+  keypresscheck(savekey,&save);
   if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
-    if(click==0)click=2;
-    else click=1;
+    if(leftclick==0)leftclick=2;
+    else leftclick=1;
   }
-  else click=0;
+  else leftclick=0;
+  if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Right)){
+    if(rightclick==0)rightclick=2;
+    else rightclick=1;
+  }
+  else rightclick=0;
 }
 
 void render() {//랜더 함수
@@ -342,10 +362,22 @@ void render() {//랜더 함수
   // tri[3].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty2);
   // rt.draw(tri);
 
+  tri.resize(5);
+  tri.setPrimitiveType(sf::PrimitiveType::LineStrip);
+  for(int i=0;i<5;i++)tri[i].color=sf::Color::Red;
+  tri[0].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy1);
+  tri[1].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx2,debugdelete.y+debugdelete.hitboxy1);
+  tri[2].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx2,debugdelete.y+debugdelete.hitboxy2);
+  tri[3].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy2);
+  tri[4].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy1);
+  rt.draw(tri);
+
   rt.display();
   sf::Sprite temp(rt.getTexture());
   window.draw(temp);
 
+  tri.resize(4);
+  tri.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   tri[0].position=sf::Vector2f(0,0);
   tri[1].position=sf::Vector2f(16,0);
@@ -364,6 +396,7 @@ void render() {//랜더 함수
   
   window.display();
 }
+
 int init() {//프로그램 시작시 준비 시키는 함수(?)
   if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
   !texturemap["Background1"].loadFromFile("assets/images/Background.png"))return -1;//텍스쳐 파일 읽는 코드
