@@ -6,7 +6,7 @@
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
 sf::RenderTexture uirt({160,144});//
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
-char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0,start = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
+char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0, start = 0, click = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
 sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   downkey = sf::Keyboard::Key::Down,
                   upkey = sf::Keyboard::Key::Up,
@@ -20,9 +20,11 @@ bool groundcheck=false;//땅에 닿았는지 여부
 bool doublejump=true;//더블점프 가능 여부
 bool dash=true;//대시 가능 여부
 bool floating=false;//호버링 하고 있는지
+bool debug=true;//디버그 모드
 char hp=3;//체력
 char iframes=0;//무적프레임
 char attacking=0;//공격 양수일시 가로, 음수일시 세로
+float screensizex=1,screensizey=1;
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -94,8 +96,9 @@ void windowset(){//윈도우 설정용 함수
         y = (float(resized->size.y) / float(resized->size.x) * 160.f);
       }
       sf::FloatRect visibleArea({(-x + 160.f) / 2, (-y + 144.f) / 2}, {x, y});
-
       window.setView(sf::View(visibleArea));
+      screensizex=window.getSize().x/160.f;
+      screensizey=window.getSize().y/144.f;
     }
   }
 }
@@ -210,6 +213,22 @@ void update() {
   else obstaclecollisioncheck();
 }
 
+void debugupdate(){
+  if(select==2)auto error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
+  if (click==2){
+    ground temp;
+    temp.x = (sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x-80;
+    temp.y = (sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y-72;
+    temp.x2 = 8;
+    temp.y2 = 8;
+    currentmap.grounddeque.push_back(temp);
+  }
+  else if(click==1){
+    currentmap.grounddeque.back().x2 = (sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x-80-currentmap.grounddeque.back().x;
+    currentmap.grounddeque.back().y2 = 1;
+  }
+}
+
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   keypresscheck(rightkey,&right);
   keypresscheck(leftkey,&left);
@@ -219,6 +238,11 @@ void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   keypresscheck(cancelkey,&cancel);
   keypresscheck(startkey,&start);
   keypresscheck(selectkey,&select);
+  if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+    if(click==0)click=2;
+    else click=1;
+  }
+  else click=0;
 }
 
 void render() {//랜더 함수
@@ -337,12 +361,8 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
 
-  
-
   player.xvelocity=2;
   auto error = glz::read_file_json(currentmap,"assets/database/map.json",std::string{});
-  if(error)return -1;
-  error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
   if(error)return -1;
   return 0;
 }
@@ -351,7 +371,8 @@ int main() {
   while (window.isOpen()) {
     windowset();
     input();
-    update();
+    if(debug)debugupdate();
+    else update();
     render();
   }
   return 0;
