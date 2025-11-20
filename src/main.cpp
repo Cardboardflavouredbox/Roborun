@@ -190,18 +190,18 @@ void update() {
     dash=false;
     player.xvelocity=10;
   }
-  if(cancel==2){
+  if(cancel==2){//공격 키를 눌렀을 시
     floating=false;
-    if(groundcheck)attacking=2;
-    else attacking=-2;
+    if(groundcheck)attacking=2;//공격 변수 2로 설정 (양수일시 가로 공격)
+    else attacking=-2;//공격 변수 -2로 설정 (음수일시 세로 공격)
   }
   if(attacking>0){
-    entity temp={player.x,player.y,0,0,0,0,0,0,4,-16,24,0};
-    attackcollisioncheck(temp);
+    entity temp={player.x,player.y,0,0,0,0,0,0,4,-16,24,0};//판정 계산용 임시 엔티티 생성
+    attackcollisioncheck(temp);//장애물과 공격의 충돌 확인 함수
   }
   else if(attacking<0){
-    entity temp={player.x,player.y,0,0,0,0,0,0,-12,-8,12,20};
-    attackcollisioncheck(temp);
+    entity temp={player.x,player.y,0,0,0,0,0,0,-12,-8,12,20};//판정 계산용 임시 엔티티 생성
+    attackcollisioncheck(temp);//장애물과 공격의 충돌 확인 함수
   }
   groundcollisioncheck();
   player.x+=player.xvelocity;
@@ -249,7 +249,9 @@ void debugupdate(){
     debugdelete.hitboxy2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizey+view.getCenter().y)-80)/(int)8)*8-debugdelete.y;
   }
   
-  if(rightclick==0)
+  if(rightclick==0&&(debugdelete.hitboxx1!=0||debugdelete.hitboxx2!=0||debugdelete.hitboxy1!=0||debugdelete.hitboxy2!=0)){
+    
+  }
   if(leftclick==0&&!currentmap.grounddeque.empty()&&currentmap.grounddeque.back().x2==currentmap.grounddeque.back().x)currentmap.grounddeque.pop_back();
 }
 
