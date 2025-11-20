@@ -20,7 +20,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glaze)
 
-add_executable(main src/main.cpp)
-target_compile_features(main PRIVATE cxx_std_17)
-target_link_libraries(main PRIVATE SFML::Graphics glaze::glaze)
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static -static-libgcc -static-libstdc++")
+
+    add_executable(Roborun WIN32 src/main.cpp)
+else()
+    add_executable(Roborun src/main.cpp)
+endif ()
+target_compile_features(Roborun PRIVATE cxx_std_17)
+target_link_libraries(Roborun PRIVATE SFML::Graphics glaze::glaze )
 FILE(COPY src/assets DESTINATION "${CMAKE_BINARY_DIR}/bin")
