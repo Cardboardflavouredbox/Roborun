@@ -144,14 +144,14 @@ void obstaclecollisioncheck(){//장애물 인식 함수
 void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
   for(int i=0;i<currentmap.obstacledeque.size();i++){
     if(!currentmap.obstacledeque[i].destroyed&&overlap(temp,currentmap.obstacledeque[i])){
-      if(currentmap.obstacledeque[i].destroyable)currentmap.obstacledeque[i].destroyed=true;
+      if(currentmap.obstacledeque[i].destroyable)currentmap.obstacledeque[i].destroyed=true;//파괴 가능 장애물일시 파괴
       if(attacking>0){
-        player.xvelocity=-2;
+        player.xvelocity=-2;//가로 공격 적중 시 뒤 밀쳐짐
       }
-      else if(currentmap.obstacledeque[i].bouncable){
-        player.yvelocity=-5;
-        doublejump=true;
-        dash=true;
+      else if(currentmap.obstacledeque[i].bouncable){//튀어오를 수 있는 장애물일시
+        player.yvelocity=-5;//세로 공격 적중 시 튀어오름
+        doublejump=true;//더블점프 활성화
+        dash=true;//대시 활성화
       }
       break;
       }
