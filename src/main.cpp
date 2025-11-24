@@ -27,6 +27,7 @@ char hp=3;//체력
 char iframes=0;//무적프레임
 char attacking=0;//공격 양수일시 가로, 음수일시 세로
 float screensizex=1,screensizey=1;
+bool mainmenu=true;//메인 메뉴인가?
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -158,10 +159,12 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
   }
 }
 
+void mainmenuupdate(){
+  
+}
 
 
-
-void update() {
+void gameloopupdate() {
   view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
   
   groundcollisioncheck();
@@ -218,6 +221,11 @@ void update() {
   if (player.y > 32) { // 기준 y값은 원하는 대로 조정 (예: 300 또는 500)
     hp=0;
   }
+}
+
+void update(){
+  if(mainmenu)mainmenuupdate();
+  else gameloopupdate();
 }
 
 void debugupdate(){
