@@ -215,15 +215,8 @@ void update() {
   if(iframes>0)iframes--;
   else obstaclecollisioncheck();
 
-  if (player.y > 500) { // 기준 y값은 원하는 대로 조정 (예: 300 또는 500)
-    hp--;
-    iframes = 96;       // 무적 부여해서 즉사 루프 방지
-    player.x = 0;       // 리스폰 위치
-    player.y = 0;       // 리스폰 위치
-    player.xvelocity = 2;
-    player.yvelocity = 0;
-    doublejump = true;
-    dash = true;
+  if (player.y > 32) { // 기준 y값은 원하는 대로 조정 (예: 300 또는 500)
+    hp=0;
   }
 }
 
