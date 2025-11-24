@@ -28,6 +28,9 @@ char iframes=0;//무적프레임
 char attacking=0;//공격 양수일시 가로, 음수일시 세로
 float screensizex=1,screensizey=1;
 bool mainmenu=true;//메인 메뉴인가?
+float mainmenulerp=0;
+char mainmenuoption=0;
+char hitstop=0;//히트스탑
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -137,6 +140,7 @@ void obstaclecollisioncheck(){//장애물 인식 함수
       hp--;
       player.xvelocity=0;
       iframes=96;
+      hitstop=7;
       break;
       }
   }
@@ -147,20 +151,30 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
     if(!currentmap.obstacledeque[i].destroyed&&overlap(temp,currentmap.obstacledeque[i])){
       if(currentmap.obstacledeque[i].destroyable)currentmap.obstacledeque[i].destroyed=true;//파괴 가능 장애물일시 파괴
       if(attacking>0){
+        hitstop=5;
         player.xvelocity=-2;//가로 공격 적중 시 뒤 밀쳐짐
       }
       else if(currentmap.obstacledeque[i].bouncable){//튀어오를 수 있는 장애물일시
+        hitstop=5;
         player.yvelocity=-5;//세로 공격 적중 시 튀어오름
         doublejump=true;//더블점프 활성화
         dash=true;//대시 활성화
       }
+      attacking=0;
       break;
       }
   }
 }
 
 void mainmenuupdate(){
-  
+  mainmenulerp=Lerp(mainmenulerp,0,0.1f);
+  if(right==2&&mainmenuoption==0){mainmenuoption=1;mainmenulerp=50;}
+  else if(left==2&&mainmenuoption==1){mainmenuoption=0;mainmenulerp=50;}
+  if(confirm==2){
+    mainmenu=false;
+    if(mainmenuoption==1)debug=true;
+    else debug=false;
+  }
 }
 
 
@@ -224,8 +238,11 @@ void gameloopupdate() {
 }
 
 void update(){
-  if(mainmenu)mainmenuupdate();
-  else gameloopupdate();
+  if(hitstop>0)hitstop--;
+  else{
+    if(mainmenu)mainmenuupdate();
+    else gameloopupdate();
+  }
 }
 
 void debugupdate(){
@@ -289,11 +306,35 @@ void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   else rightclick=0;
 }
 
-void render() {//랜더 함수
-  rt.setView(view);
-  window.clear();//원도우 클리어
-  rt.clear();//랜더 텍스쳐 클리어
-  uirt.clear(sf::Color::Transparent);//UI 랜더 텍스쳐 클리어
+void mainmenurender(){
+  sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
+  tri[0].position={0,0};
+  tri[1].position={160,0};
+  tri[2].position={0,144};
+  tri[3].position={160,144};
+  tri[0].texCoords={0,0};
+  tri[1].texCoords={160,0};
+  tri[2].texCoords={0,144};
+  tri[3].texCoords={160,144};
+  uirt.draw(tri,&texturemap["Background1"]);
+
+
+  sf::Sprite sprite(texturemap["Options"]);
+
+  sprite.setTextureRect({{0,0},{64,32}});
+  sprite.setOrigin({32,16});
+  sprite.setPosition({48,112});
+  if(mainmenuoption==1){sprite.setScale({(50+mainmenulerp)/100,(50+mainmenulerp)/100});}
+  else{sprite.setScale({(100-mainmenulerp)/100,(100-mainmenulerp)/100});}
+  uirt.draw(sprite);
+  sprite.setPosition({112,112});
+  sprite.setTextureRect({{0,32},{64,64}});
+  if(mainmenuoption==0){sprite.setScale({(50+mainmenulerp)/100,(50+mainmenulerp)/100});}
+  else sprite.setScale({(100-mainmenulerp)/100,(100-mainmenulerp)/100});
+  uirt.draw(sprite);
+}
+
+void gamelooprender() {//메인 게임 랜더 함수
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
   tri[0].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,-72-64);
@@ -386,10 +427,6 @@ void render() {//랜더 함수
   tri[4].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy1);
   rt.draw(tri);
 
-  rt.display();
-  sf::Sprite temp(rt.getTexture());
-  window.draw(temp);
-
   tri.resize(4);
   tri.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
@@ -404,6 +441,21 @@ void render() {//랜더 함수
     }
   }
 
+  
+}
+
+void render(){
+  rt.setView(view);
+  window.clear();//원도우 클리어
+  rt.clear();//랜더 텍스쳐 클리어
+  uirt.clear(sf::Color::Transparent);//UI 랜더 텍스쳐 클리어
+  if(mainmenu)mainmenurender();
+  else gamelooprender();
+
+  rt.display();
+  sf::Sprite temp(rt.getTexture());
+  window.draw(temp);
+
   uirt.display();
   temp.setTexture(uirt.getTexture(),true);
   window.draw(temp);
@@ -413,7 +465,8 @@ void render() {//랜더 함수
 
 int init() {//프로그램 시작시 준비 시키는 함수(?)
   if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
-  !texturemap["Background1"].loadFromFile("assets/images/Background.png"))return -1;//텍스쳐 파일 읽는 코드
+  !texturemap["Background1"].loadFromFile("assets/images/Background.png")||
+  !texturemap["Options"].loadFromFile("assets/images/Options.png"))return -1;//텍스쳐 파일 읽는 코드
   view.setCenter({float(player.x+64),-64});
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
