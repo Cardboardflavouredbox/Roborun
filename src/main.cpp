@@ -23,13 +23,14 @@ bool doublejump=true;//더블점프 가능 여부
 bool dash=true;//대시 가능 여부
 bool floating=false;//호버링 하고 있는지
 bool debug=false;//디버그 모드
+bool gettinghit=false;//데미지 에니메이션
 char hp=3;//체력
 char iframes=0;//무적프레임
 char attacking=0;//공격 양수일시 가로, 음수일시 세로
 float screensizex=1,screensizey=1;
 bool mainmenu=true;//메인 메뉴인가?
-float mainmenulerp=0;
-char mainmenuoption=0;
+float mainmenulerp=0;//메인 메뉴 에니메이션
+char mainmenuoption=0;//메인 메뉴 선택
 char hitstop=0;//히트스탑
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
@@ -63,6 +64,7 @@ struct entity{//엔티티 클래스
 };
 entity player;//플레이어
 entity debugdelete;//삭제판정
+entity attack;//공격판정
 
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
@@ -138,9 +140,10 @@ void obstaclecollisioncheck(){//장애물 인식 함수
   for(int i=0;i<currentmap.obstacledeque.size();i++){
     if(!currentmap.obstacledeque[i].destroyed&&overlap(player,currentmap.obstacledeque[i])){
       hp--;
-      player.xvelocity=0;
+      player.xvelocity=-2;
       iframes=96;
       hitstop=7;
+      gettinghit=true;
       break;
       }
   }
@@ -213,12 +216,12 @@ void gameloopupdate() {
     else attacking=-2;//공격 변수 -2로 설정 (음수일시 세로 공격)
   }
   if(attacking>0){
-    entity temp={player.x,player.y,0,0,0,0,0,0,4,-16,24,0};//판정 계산용 임시 엔티티 생성
-    attackcollisioncheck(temp);//장애물과 공격의 충돌 확인 함수
+    attack={player.x,player.y,0,0,0,0,0,0,4,-16,32,0};//공격 판정 엔티티
+    attackcollisioncheck(attack);//장애물과 공격의 충돌 확인 함수
   }
   else if(attacking<0){
-    entity temp={player.x,player.y,0,0,0,0,0,0,-12,-8,12,20};//판정 계산용 임시 엔티티 생성
-    attackcollisioncheck(temp);//장애물과 공격의 충돌 확인 함수
+    attack={player.x,player.y,0,0,0,0,0,0,-12,-8,12,24};//공격 판정 엔티티
+    attackcollisioncheck(attack);//장애물과 공격의 충돌 확인 함수
   }
   groundcollisioncheck();
   player.x+=player.xvelocity;
@@ -240,6 +243,7 @@ void gameloopupdate() {
 void update(){
   if(hitstop>0)hitstop--;
   else{
+    gettinghit=false;
     if(mainmenu)mainmenuupdate();
     else gameloopupdate();
   }
@@ -370,18 +374,18 @@ void gamelooprender() {//메인 게임 랜더 함수
   
   if(attacking>0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
-    tri[0].position=sf::Vector2f(player.x+4,player.y-16);
-    tri[1].position=sf::Vector2f(player.x+24,player.y-16);
-    tri[2].position=sf::Vector2f(player.x+4,player.y);
-    tri[3].position=sf::Vector2f(player.x+24,player.y);
+    tri[0].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy1);
+    tri[1].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy1);
+    tri[2].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy2);
+    tri[3].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy2);
     rt.draw(tri);
   }
   else if(attacking<0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
-    tri[0].position=sf::Vector2f(player.x-12,player.y-8);
-    tri[1].position=sf::Vector2f(player.x+12,player.y-8);
-    tri[2].position=sf::Vector2f(player.x-12,player.y+20);
-    tri[3].position=sf::Vector2f(player.x+12,player.y+20);
+    tri[0].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy1);
+    tri[1].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy1);
+    tri[2].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy2);
+    tri[3].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy2);
     rt.draw(tri);
   }
 
@@ -394,9 +398,11 @@ void gamelooprender() {//메인 게임 랜더 함수
     player.anim++;
     if(player.anim>39)player.anim=0;
     int anim=0;
-    if(player.xvelocity>2)anim=4;
+    if(gettinghit)anim=5;
+    else if(player.xvelocity>2)anim=4;
     else if(!groundcheck){
       if(player.yvelocity<0)anim=3;
+      else anim=6;
     }
     else
     switch(player.anim/10){
