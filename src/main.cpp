@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <glaze/glaze.hpp>
 #include <deque>
+#include <algorithm>
 #include <unordered_map>
 #include <iostream>
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
@@ -41,18 +42,20 @@ float Lerp(float A, float B, float Alpha) {//선형 보간 함수
 
 struct ground{//땅 클래스
     int x,y,x2,y2;
+    bool operator< (const ground& temp) const {return x < temp.x;}
 };
 struct obstacle{//장애물 클래스
     int x,y,x2,y2;
     bool destroyable=false;
     bool bouncable=true;
     bool destroyed=false;
+    bool operator< (const obstacle& temp) const {return x < temp.x;}
 };
 struct map{
   std::deque<ground> grounddeque;//땅의 데이터가 저장된 덱
   std::deque<obstacle> obstacledeque;//장애물의 데이터가 저장된 덱
 };
-map currentmap;
+map currentmap,tempmap,loadedmap;
 
 struct entity{//엔티티 클래스
     int x=0,y=0;
@@ -126,10 +129,10 @@ void keypresscheck(sf::Keyboard::Key keycode, char* key) {//키 인식 함수
 void groundcollisioncheck(){//땅 인식 함수
   groundcheck=false;
   player.y++;
-  for(int i=0;i<currentmap.grounddeque.size();i++){
-    if(overlap(player,currentmap.grounddeque[i])){
+  for(int i=0;i<loadedmap.grounddeque.size();i++){
+    if(overlap(player,loadedmap.grounddeque[i])){
       groundcheck=true;
-      while(overlap(player,currentmap.grounddeque[i]))player.y--;
+      while(overlap(player,loadedmap.grounddeque[i]))player.y--;
       break;
       }
   }
@@ -137,8 +140,8 @@ void groundcollisioncheck(){//땅 인식 함수
 }
 
 void obstaclecollisioncheck(){//장애물 인식 함수
-  for(int i=0;i<currentmap.obstacledeque.size();i++){
-    if(!currentmap.obstacledeque[i].destroyed&&overlap(player,currentmap.obstacledeque[i])){
+  for(int i=0;i<loadedmap.obstacledeque.size();i++){
+    if(!loadedmap.obstacledeque[i].destroyed&&overlap(player,loadedmap.obstacledeque[i])){
       hp--;
       player.xvelocity=-2;
       iframes=96;
@@ -150,14 +153,14 @@ void obstaclecollisioncheck(){//장애물 인식 함수
 }
 
 void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
-  for(int i=0;i<currentmap.obstacledeque.size();i++){
-    if(!currentmap.obstacledeque[i].destroyed&&overlap(temp,currentmap.obstacledeque[i])){
-      if(currentmap.obstacledeque[i].destroyable)currentmap.obstacledeque[i].destroyed=true;//파괴 가능 장애물일시 파괴
+  for(int i=0;i<loadedmap.obstacledeque.size();i++){
+    if(!loadedmap.obstacledeque[i].destroyed&&overlap(temp,loadedmap.obstacledeque[i])){
+      if(loadedmap.obstacledeque[i].destroyable)loadedmap.obstacledeque[i].destroyed=true;//파괴 가능 장애물일시 파괴
       if(attacking>0){
         hitstop=5;
         player.xvelocity=-2;//가로 공격 적중 시 뒤 밀쳐짐
       }
-      else if(currentmap.obstacledeque[i].bouncable){//튀어오를 수 있는 장애물일시
+      else if(loadedmap.obstacledeque[i].bouncable){//튀어오를 수 있는 장애물일시
         hitstop=5;
         player.yvelocity=-5;//세로 공격 적중 시 튀어오름
         doublejump=true;//더블점프 활성화
@@ -174,6 +177,7 @@ void mainmenuupdate(){
   if(right==2&&mainmenuoption==0){mainmenuoption=1;mainmenulerp=50;}
   else if(left==2&&mainmenuoption==1){mainmenuoption=0;mainmenulerp=50;}
   if(confirm==2){
+    tempmap=currentmap;
     mainmenu=false;
     if(mainmenuoption==1)debug=true;
     else debug=false;
@@ -183,7 +187,18 @@ void mainmenuupdate(){
 
 void gameloopupdate() {
   view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
-  
+
+  if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<view.getCenter().x+160){
+    loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
+    tempmap.grounddeque.pop_front();
+  }
+  if(!tempmap.obstacledeque.empty()&&tempmap.obstacledeque.front().x<view.getCenter().x+160){
+    loadedmap.obstacledeque.push_back(tempmap.obstacledeque.front());
+    tempmap.obstacledeque.pop_front();
+  }
+  if(!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.back().x+loadedmap.grounddeque.back().x2<view.getCenter().x-160)loadedmap.grounddeque.pop_back();
+  if(!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.back().x+loadedmap.obstacledeque.back().x2<view.getCenter().x-160)loadedmap.obstacledeque.pop_back();
+
   groundcollisioncheck();
 
   if(groundcheck){player.yvelocity=0;doublejump=true;}//더블 점프 활성화 + 땅에 있을시에 y가속도 0으로 설정
@@ -236,7 +251,7 @@ void gameloopupdate() {
   if(iframes>0)iframes--;
   else obstaclecollisioncheck();
 
-  if (player.y > 32) { // 기준 y값은 원하는 대로 조정 (예: 300 또는 500)
+  if (player.y > 32) {
     hp=0;
   }
 }
@@ -266,11 +281,11 @@ void debugupdate(){
     temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
     temp.x2 = 0;
     temp.y2 = 0;
-    currentmap.grounddeque.push_back(temp);
+    loadedmap.grounddeque.push_back(temp);
   }
   else if(leftclick==1){
-    currentmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-currentmap.grounddeque.back().x;
-    currentmap.grounddeque.back().y2 = 1;
+    loadedmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-loadedmap.grounddeque.back().x;
+    loadedmap.grounddeque.back().y2 = 1;
   }
   else if(rightclick==2){
     debugdelete.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
@@ -286,7 +301,7 @@ void debugupdate(){
   if(rightclick==0&&(debugdelete.hitboxx1!=0||debugdelete.hitboxx2!=0||debugdelete.hitboxy1!=0||debugdelete.hitboxy2!=0)){
     
   }
-  if(leftclick==0&&!currentmap.grounddeque.empty()&&currentmap.grounddeque.back().x2==currentmap.grounddeque.back().x)currentmap.grounddeque.pop_back();
+  if(leftclick==0&&!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.back().x2==loadedmap.grounddeque.back().x)loadedmap.grounddeque.pop_back();
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
@@ -357,19 +372,19 @@ void gamelooprender() {//메인 게임 랜더 함수
   for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
   rt.draw(tri,&texturemap["Background1"]);
   for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  for(int i=0;i<currentmap.grounddeque.size();i++){
-    tri[0].position=sf::Vector2f(currentmap.grounddeque[i].x,currentmap.grounddeque[i].y);
-    tri[1].position=sf::Vector2f(currentmap.grounddeque[i].x+currentmap.grounddeque[i].x2,currentmap.grounddeque[i].y);
-    tri[2].position=sf::Vector2f(currentmap.grounddeque[i].x,currentmap.grounddeque[i].y+currentmap.grounddeque[i].y2);
-    tri[3].position=sf::Vector2f(currentmap.grounddeque[i].x+currentmap.grounddeque[i].x2,currentmap.grounddeque[i].y+currentmap.grounddeque[i].y2);
+  for(int i=0;i<loadedmap.grounddeque.size();i++){
+    tri[0].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y);
+    tri[1].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y);
+    tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
+    tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
     rt.draw(tri);
   }
   for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
-  for(int i=0;i<currentmap.obstacledeque.size();i++){
-    tri[0].position=sf::Vector2f(currentmap.obstacledeque[i].x,currentmap.obstacledeque[i].y);
-    tri[1].position=sf::Vector2f(currentmap.obstacledeque[i].x+currentmap.obstacledeque[i].x2,currentmap.obstacledeque[i].y);
-    tri[2].position=sf::Vector2f(currentmap.obstacledeque[i].x,currentmap.obstacledeque[i].y+currentmap.obstacledeque[i].y2);
-    tri[3].position=sf::Vector2f(currentmap.obstacledeque[i].x+currentmap.obstacledeque[i].x2,currentmap.obstacledeque[i].y+currentmap.obstacledeque[i].y2);
+  for(int i=0;i<loadedmap.obstacledeque.size();i++){
+    tri[0].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y);
+    tri[1].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y);
+    tri[2].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
+    tri[3].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
     rt.draw(tri);
   }
   
@@ -478,9 +493,16 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
 
+
+  debugdelete.hitboxx1=0;debugdelete.hitboxx2=0;
+  debugdelete.hitboxy1=0;debugdelete.hitboxy2=0;
   player.xvelocity=2;
   auto error = glz::read_file_json(currentmap,"assets/database/map.json",std::string{});
   if(error)return -1;
+
+  std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
+  std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
+
   return 0;
 }
 int main() {
