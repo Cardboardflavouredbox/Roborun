@@ -187,7 +187,7 @@ void gameloopupdate() {
   groundcollisioncheck();
 
   if(groundcheck){player.yvelocity=0;doublejump=true;}//더블 점프 활성화 + 땅에 있을시에 y가속도 0으로 설정
-  else player.yvelocity+=0.5f*(floating&&player.yvelocity>0?0.125f:1);//중력
+  else if(player.xvelocity<=2) player.yvelocity+=0.5f*(floating&&player.yvelocity>0?0.125f:1);//중력
 
   if(player.xvelocity>2)player.xvelocity-=0.5f;//X속도가 2보다 크다면 0.5씩 감소
 
@@ -196,7 +196,7 @@ void gameloopupdate() {
 
   if(player.xvelocity<2)player.xvelocity+=0.25f;
   if(player.xvelocity==2&&groundcheck)dash=true;
-  if(confirm==2){//점프 키를 눌렀을 시
+  if(confirm==2&&player.xvelocity<=2){//점프 키를 눌렀을 시
     floating=false;
     if(groundcheck){player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
     else if(doublejump){doublejump=false;player.yvelocity=-7;}//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
@@ -209,8 +209,9 @@ void gameloopupdate() {
     floating=false;
     dash=false;
     player.xvelocity=10;
+    player.yvelocity=0;
   }
-  if(cancel==2){//공격 키를 눌렀을 시
+  if(cancel==2&&player.xvelocity<=2){//공격 키를 눌렀을 시
     floating=false;
     if(groundcheck)attacking=2;//공격 변수 2로 설정 (양수일시 가로 공격)
     else attacking=-2;//공격 변수 -2로 설정 (음수일시 세로 공격)
