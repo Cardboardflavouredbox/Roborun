@@ -166,7 +166,6 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
         doublejump=true;//더블점프 활성화
         dash=true;//대시 활성화
       }
-      attacking=0;
       break;
       }
   }
@@ -228,14 +227,14 @@ void gameloopupdate() {
   }
   if(cancel==2&&player.xvelocity<=2){//공격 키를 눌렀을 시
     floating=false;
-    if(groundcheck)attacking=2;//공격 변수 2로 설정 (양수일시 가로 공격)
-    else attacking=-2;//공격 변수 -2로 설정 (음수일시 세로 공격)
+    if(groundcheck)attacking=10;//공격 변수 2로 설정 (양수일시 가로 공격)
+    else attacking=-10;//공격 변수 -2로 설정 (음수일시 세로 공격)
   }
-  if(attacking>0){
+  if(attacking>6&&attacking<8){
     attack={player.x,player.y,0,0,0,0,0,0,4,-16,32,0};//공격 판정 엔티티
     attackcollisioncheck(attack);//장애물과 공격의 충돌 확인 함수
   }
-  else if(attacking<0){
+  else if(attacking<-6&&attacking>-8){
     attack={player.x,player.y,0,0,0,0,0,0,-12,-8,12,24};//공격 판정 엔티티
     attackcollisioncheck(attack);//장애물과 공격의 충돌 확인 함수
   }
@@ -257,7 +256,10 @@ void gameloopupdate() {
 }
 
 void update(){
-  if(hitstop>0)hitstop--;
+  if(hitstop>0){
+    hitstop--;
+    if(hitstop==0)attacking=0;
+    }
   else{
     gettinghit=false;
     if(mainmenu)mainmenuupdate();
@@ -388,21 +390,40 @@ void gamelooprender() {//메인 게임 랜더 함수
     rt.draw(tri);
   }
   
+
   if(attacking>0){
-    for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
-    tri[0].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy1);
-    tri[1].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy1);
-    tri[2].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy2);
-    tri[3].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy2);
-    rt.draw(tri);
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+    tri[0].position=sf::Vector2f(player.x,player.y-20);
+    tri[1].position=sf::Vector2f(player.x+32,player.y-20);
+    tri[2].position=sf::Vector2f(player.x,player.y+12);
+    tri[3].position=sf::Vector2f(player.x+32,player.y+12);
+
+    int tempanim=0;
+    if(attacking<6)tempanim=2;
+    else if(attacking>8)tempanim=0;
+    else tempanim=1;
+    tri[0].texCoords=sf::Vector2f(tempanim*32+0,0);
+    tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
+    tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
+    tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
+    rt.draw(tri,&texturemap["Slash"]);
   }
   else if(attacking<0){
-    for(int i=0;i<4;i++)tri[i].color=sf::Color::Cyan;
-    tri[0].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy1);
-    tri[1].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy1);
-    tri[2].position=sf::Vector2f(attack.x+attack.hitboxx1,attack.y+attack.hitboxy2);
-    tri[3].position=sf::Vector2f(attack.x+attack.hitboxx2,attack.y+attack.hitboxy2);
-    rt.draw(tri);
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+    tri[2].position=sf::Vector2f(player.x-16,player.y);
+    tri[0].position=sf::Vector2f(player.x+16,player.y);
+    tri[3].position=sf::Vector2f(player.x-16,player.y+24);
+    tri[1].position=sf::Vector2f(player.x+16,player.y+24);
+
+    int tempanim=0;
+    if(attacking>-6)tempanim=2;
+    else if(attacking<-8)tempanim=0;
+    else tempanim=1;
+    tri[0].texCoords=sf::Vector2f(tempanim*32+0,0);
+    tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
+    tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
+    tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
+    rt.draw(tri,&texturemap["Slash"]);
   }
 
   if((iframes/4)%2==0){
@@ -488,7 +509,8 @@ void render(){
 int init() {//프로그램 시작시 준비 시키는 함수(?)
   if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
   !texturemap["Background1"].loadFromFile("assets/images/Background.png")||
-  !texturemap["Options"].loadFromFile("assets/images/Options.png"))return -1;//텍스쳐 파일 읽는 코드
+  !texturemap["Options"].loadFromFile("assets/images/Options.png")||
+  !texturemap["Slash"].loadFromFile("assets/images/Slash.png"))return -1;//텍스쳐 파일 읽는 코드
   view.setCenter({float(player.x+64),-64});
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
