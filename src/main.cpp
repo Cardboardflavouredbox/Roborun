@@ -33,6 +33,8 @@ bool mainmenu=true;//메인 메뉴인가?
 float mainmenulerp=0;//메인 메뉴 에니메이션
 char mainmenuoption=0;//메인 메뉴 선택
 char hitstop=0;//히트스탑
+int deathanim=60;
+bool placetypeground=true;
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
@@ -69,6 +71,29 @@ entity player;//플레이어
 entity debugdelete;//삭제판정
 entity attack;//공격판정
 
+void debugset(){
+  tempmap=currentmap;
+  loadedmap=currentmap;
+}
+
+void setgame(){//게임세팅 함수
+  tempmap=currentmap;
+  player.x=0;player.y=0;
+  player.yvelocity=0;
+  view.setCenter({float(player.x+64),-64});
+  player.xvelocity=2;
+  groundcheck=false;
+  doublejump=true;
+  dash=true;
+  floating=false;
+  debug=false;
+  gettinghit=false;
+  hp=3;
+  iframes=0;
+  attacking=0;
+  hitstop=0;
+  deathanim=60;
+}
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
 {
@@ -144,6 +169,7 @@ void obstaclecollisioncheck(){//장애물 인식 함수
     if(!loadedmap.obstacledeque[i].destroyed&&overlap(player,loadedmap.obstacledeque[i])){
       hp--;
       player.xvelocity=-2;
+      player.yvelocity=0;
       iframes=96;
       hitstop=7;
       gettinghit=true;
@@ -171,14 +197,30 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
   }
 }
 
+void deletecheck(){
+  for(int i=0;i<loadedmap.grounddeque.size();i++){
+    if(overlap(debugdelete,loadedmap.grounddeque[i])){
+      loadedmap.grounddeque.erase(loadedmap.grounddeque.begin()+i);
+      i--;
+    }
+  }
+  for(int i=0;i<loadedmap.obstacledeque.size();i++){
+    if(overlap(debugdelete,loadedmap.obstacledeque[i])){
+      loadedmap.obstacledeque.erase(loadedmap.obstacledeque.begin()+i);
+      i--;
+    }
+  }
+  debugdelete.hitboxx1=0;debugdelete.hitboxx2=0;
+  debugdelete.hitboxy1=0;debugdelete.hitboxy2=0;
+}
+
 void mainmenuupdate(){
   mainmenulerp=Lerp(mainmenulerp,0,0.1f);
   if(right==2&&mainmenuoption==0){mainmenuoption=1;mainmenulerp=50;}
   else if(left==2&&mainmenuoption==1){mainmenuoption=0;mainmenulerp=50;}
   if(confirm==2){
-    tempmap=currentmap;
     mainmenu=false;
-    if(mainmenuoption==1)debug=true;
+    if(mainmenuoption==1){debug=true;debugset();}
     else debug=false;
   }
 }
@@ -250,8 +292,24 @@ void gameloopupdate() {
   if(iframes>0)iframes--;
   else obstaclecollisioncheck();
 
-  if (player.y > 32) {
+  if (player.y > 64) {
     hp=0;
+  }
+}
+
+void gameoverupdate(){
+  if(deathanim>0){
+    view.setCenter({Lerp(view.getCenter().x,float(player.x),0.5f),Lerp(view.getCenter().y,float(player.y),0.5f)});
+    deathanim--;
+    if(deathanim==0)player.yvelocity=-4;
+  }
+  else{
+    player.y+=player.yvelocity;
+    player.yvelocity+=0.25f;
+    if(player.yvelocity>16){
+      mainmenu=true;
+      setgame();
+    }
   }
 }
 
@@ -263,31 +321,59 @@ void update(){
   else{
     gettinghit=false;
     if(mainmenu)mainmenuupdate();
-    else gameloopupdate();
+    else if(hp>0)gameloopupdate();
+    else gameoverupdate();
   }
 }
 
 void debugupdate(){
+  if(confirm==2&&leftclick==0&&rightclick==0)placetypeground=!placetypeground;
   if(right==2)view.setCenter(view.getCenter()+sf::Vector2f(40,0));
   if(left==2)view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
   if(save==2){
-    auto error=glz::write_file_json(currentmap,"assets/database/map.json",std::string{});
+    std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
+    std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
+    for(int i=0;i<loadedmap.grounddeque.size();i++){
+      if(loadedmap.grounddeque[i].x2<0){loadedmap.grounddeque[i].x+=loadedmap.grounddeque[i].x2;loadedmap.grounddeque[i].x2*=-1;}
+      if(loadedmap.grounddeque[i].y2<0){loadedmap.grounddeque[i].y+=loadedmap.grounddeque[i].y2;loadedmap.grounddeque[i].y2*=-1;}
+    }
+    for(int i=0;i<loadedmap.obstacledeque.size();i++){
+      if(loadedmap.obstacledeque[i].x2<0){loadedmap.obstacledeque[i].x+=loadedmap.obstacledeque[i].x2;loadedmap.obstacledeque[i].x2*=-1;}
+      if(loadedmap.obstacledeque[i].y2<0){loadedmap.obstacledeque[i].y+=loadedmap.obstacledeque[i].y2;loadedmap.obstacledeque[i].y2*=-1;}
+    }
+    auto error=glz::write_file_json(loadedmap,"assets/database/map.json",std::string{});
     if(error){
       std::string error_msg = glz::format_error(error, "assets/database/map.json");
       std::cout << error_msg << '\n';
     }
   }
   if (leftclick==2){
-    ground temp;
-    temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
-    temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
-    temp.x2 = 0;
-    temp.y2 = 0;
-    loadedmap.grounddeque.push_back(temp);
+    if(placetypeground){
+      ground temp;
+      temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
+      temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+      temp.x2 = 0;
+      temp.y2 = 0;
+      loadedmap.grounddeque.push_back(temp);
+    }
+    else{
+      obstacle temp;
+      temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
+      temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+      temp.x2 = 0;
+      temp.y2 = 0;
+      loadedmap.obstacledeque.push_back(temp);
+    }
   }
   else if(leftclick==1){
-    loadedmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-loadedmap.grounddeque.back().x;
-    loadedmap.grounddeque.back().y2 = 1;
+    if(placetypeground){
+      loadedmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-loadedmap.grounddeque.back().x;
+      loadedmap.grounddeque.back().y2 = 1;
+    }
+    else{
+      loadedmap.obstacledeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-loadedmap.obstacledeque.back().x;
+      loadedmap.obstacledeque.back().y2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8-loadedmap.obstacledeque.back().y;
+    }
   }
   else if(rightclick==2){
     debugdelete.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
@@ -297,13 +383,14 @@ void debugupdate(){
   }
   else if(rightclick==1){
     debugdelete.hitboxx2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-debugdelete.x;
-    debugdelete.hitboxy2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizey+view.getCenter().y)-80)/(int)8)*8-debugdelete.y;
+    debugdelete.hitboxy2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8-debugdelete.y;
   }
   
   if(rightclick==0&&(debugdelete.hitboxx1!=0||debugdelete.hitboxx2!=0||debugdelete.hitboxy1!=0||debugdelete.hitboxy2!=0)){
-    
+    deletecheck();
   }
   if(leftclick==0&&!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.back().x2==loadedmap.grounddeque.back().x)loadedmap.grounddeque.pop_back();
+  if(leftclick==0&&!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.back().x2==loadedmap.obstacledeque.back().x)loadedmap.obstacledeque.pop_back();
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
@@ -358,72 +445,74 @@ void mainmenurender(){
 
 void gamelooprender() {//메인 게임 랜더 함수
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  tri[0].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,-72-64);
-  tri[1].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,-72-64);
-  tri[2].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,72-64);
-  tri[3].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,72-64);
-  tri[0].texCoords=sf::Vector2f(0,0);
-  tri[1].texCoords=sf::Vector2f(160,0);
-  tri[2].texCoords=sf::Vector2f(0,144);
-  tri[3].texCoords=sf::Vector2f(160,144);
-  for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(-160,0);
-  rt.draw(tri,&texturemap["Background1"]);
-  for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
-  rt.draw(tri,&texturemap["Background1"]);
-  for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
-  rt.draw(tri,&texturemap["Background1"]);
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  for(int i=0;i<loadedmap.grounddeque.size();i++){
-    tri[0].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y);
-    tri[1].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y);
-    tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
-    tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
-    rt.draw(tri);
-  }
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
-  for(int i=0;i<loadedmap.obstacledeque.size();i++){
-    tri[0].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y);
-    tri[1].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y);
-    tri[2].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
-    tri[3].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
-    rt.draw(tri);
-  }
-  
-
-  if(attacking>0){
+  if(hp>0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-    tri[0].position=sf::Vector2f(player.x,player.y-20);
-    tri[1].position=sf::Vector2f(player.x+32,player.y-20);
-    tri[2].position=sf::Vector2f(player.x,player.y+12);
-    tri[3].position=sf::Vector2f(player.x+32,player.y+12);
-
-    int tempanim=0;
-    if(attacking<6)tempanim=2;
-    else if(attacking>8)tempanim=0;
-    else tempanim=1;
-    tri[0].texCoords=sf::Vector2f(tempanim*32+0,0);
-    tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
-    tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
-    tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
-    rt.draw(tri,&texturemap["Slash"]);
-  }
-  else if(attacking<0){
+    tri[0].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,-72-64);
+    tri[1].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,-72-64);
+    tri[2].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,72-64);
+    tri[3].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,72-64);
+    tri[0].texCoords=sf::Vector2f(0,0);
+    tri[1].texCoords=sf::Vector2f(160,0);
+    tri[2].texCoords=sf::Vector2f(0,144);
+    tri[3].texCoords=sf::Vector2f(160,144);
+    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(-160,0);
+    rt.draw(tri,&texturemap["Background1"]);
+    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
+    rt.draw(tri,&texturemap["Background1"]);
+    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
+    rt.draw(tri,&texturemap["Background1"]);
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-    tri[2].position=sf::Vector2f(player.x-16,player.y);
-    tri[0].position=sf::Vector2f(player.x+16,player.y);
-    tri[3].position=sf::Vector2f(player.x-16,player.y+24);
-    tri[1].position=sf::Vector2f(player.x+16,player.y+24);
+    for(int i=0;i<loadedmap.grounddeque.size();i++){
+      tri[0].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y);
+      tri[1].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y);
+      tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
+      tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
+      rt.draw(tri);
+    }
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
+    for(int i=0;i<loadedmap.obstacledeque.size();i++){
+      tri[0].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y);
+      tri[1].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y);
+      tri[2].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
+      tri[3].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
+      rt.draw(tri);
+    }
+    
 
-    int tempanim=0;
-    if(attacking>-6)tempanim=2;
-    else if(attacking<-8)tempanim=0;
-    else tempanim=1;
-    tri[0].texCoords=sf::Vector2f(tempanim*32+0,0);
-    tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
-    tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
-    tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
-    rt.draw(tri,&texturemap["Slash"]);
+    if(attacking>0){
+      for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+      tri[0].position=sf::Vector2f(player.x,player.y-20);
+      tri[1].position=sf::Vector2f(player.x+32,player.y-20);
+      tri[2].position=sf::Vector2f(player.x,player.y+12);
+      tri[3].position=sf::Vector2f(player.x+32,player.y+12);
+
+      int tempanim=0;
+      if(attacking<6)tempanim=2;
+      else if(attacking>8)tempanim=0;
+      else tempanim=1;
+      tri[0].texCoords=sf::Vector2f(tempanim*32+0,0);
+      tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
+      tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
+      tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
+      rt.draw(tri,&texturemap["Slash"]);
+    }
+    else if(attacking<0){
+      for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+      tri[2].position=sf::Vector2f(player.x-16,player.y);
+      tri[0].position=sf::Vector2f(player.x+16,player.y);
+      tri[3].position=sf::Vector2f(player.x-16,player.y+24);
+      tri[1].position=sf::Vector2f(player.x+16,player.y+24);
+
+      int tempanim=0;
+      if(attacking>-6)tempanim=2;
+      else if(attacking<-8)tempanim=0;
+      else tempanim=1;
+      tri[0].texCoords=sf::Vector2f(tempanim*32+0,0);
+      tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
+      tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
+      tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
+      rt.draw(tri,&texturemap["Slash"]);
+    }
   }
 
   if((iframes/4)%2==0){
@@ -435,7 +524,7 @@ void gamelooprender() {//메인 게임 랜더 함수
     player.anim++;
     if(player.anim>39)player.anim=0;
     int anim=0;
-    if(gettinghit)anim=5;
+    if(gettinghit||hp<=0)anim=5;
     else if(player.xvelocity>2)anim=4;
     else if(!groundcheck){
       if(player.yvelocity<0)anim=3;
@@ -511,22 +600,23 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   !texturemap["Background1"].loadFromFile("assets/images/Background.png")||
   !texturemap["Options"].loadFromFile("assets/images/Options.png")||
   !texturemap["Slash"].loadFromFile("assets/images/Slash.png"))return -1;//텍스쳐 파일 읽는 코드
-  view.setCenter({float(player.x+64),-64});
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
 
 
   debugdelete.hitboxx1=0;debugdelete.hitboxx2=0;
   debugdelete.hitboxy1=0;debugdelete.hitboxy2=0;
-  player.xvelocity=2;
   auto error = glz::read_file_json(currentmap,"assets/database/map.json",std::string{});
   if(error)return -1;
 
   std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
   std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
 
+  setgame();
+
   return 0;
 }
+
 int main() {
   if(init()==-1)return 0;
   while (window.isOpen()) {
