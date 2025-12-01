@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <iostream>
+#include <cmath>
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
 sf::RenderTexture uirt({160,144});//
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
@@ -41,6 +42,40 @@ float Lerp(float A, float B, float Alpha) {//선형 보간 함수
   return A * (1 - Alpha) + B * Alpha;
 }
 
+class Particle : public sf::Drawable, public sf::Transformable
+{
+public:
+    void set(unsigned int size,unsigned int length,unsigned int codething,float direction,float speedthing,sf::PrimitiveType type,sf::Color color){
+      va.resize(size);
+      va.setPrimitiveType(type);
+      for(unsigned int i=0;i<size;i++)va[0].color=color;
+      frame=0;
+      len=length;
+      code=codething;
+      dir=direction;
+      speed=speedthing;
+    }
+    void update(){
+      switch(code){
+        case 0:{//basic particle
+            va[0].position=sf::Vector2f(std::cos(dir * 3.14 / 180) * frame * speed,std::sin(dir * 3.14 / 180) * frame * speed);
+        }
+      }
+      frame++;
+    }
+    unsigned int frame,len,code;
+
+private:
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const override
+    {
+        states.transform *= getTransform();
+        states.texture = nullptr;
+        target.draw(va, states);
+    }
+    sf::VertexArray va;
+    float dir,speed;
+};
+std::deque<Particle> particledeque;
 
 struct ground{//땅 클래스
     int x,y,x2,y2;
@@ -228,6 +263,12 @@ void mainmenuupdate(){
 
 void gameloopupdate() {
   view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
+  
+  if(!particledeque.empty()&&particledeque.front().frame>=particledeque.front().len)particledeque.pop_front();
+  for(int i=0;i<particledeque.size();i++){
+    particledeque[i].update();
+  }
+  
 
   if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<view.getCenter().x+160){
     loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
@@ -255,7 +296,16 @@ void gameloopupdate() {
   if(confirm==2&&player.xvelocity<=2){//점프 키를 눌렀을 시
     floating=false;
     if(groundcheck){player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
-    else if(doublejump){doublejump=false;player.yvelocity=-7;}//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
+    else if(doublejump){//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
+      doublejump=false;
+      player.yvelocity=-7;
+      Particle temp;
+      temp.set(1,30,0,90,0.5f,sf::PrimitiveType::Points,sf::Color::White);
+      for(int i=0;i<4;i++){
+        temp.setPosition({float(player.x+8-i*4),float(player.y)});
+        particledeque.push_back(temp);
+      }
+    }
   }
   else if(confirm==1){//점프 키를 꾹 눌렀을 시
     floating=true;
@@ -266,6 +316,12 @@ void gameloopupdate() {
     dash=false;
     player.xvelocity=10;
     player.yvelocity=0;
+    Particle temp;
+    temp.set(1,30,0,180,0.5f,sf::PrimitiveType::Points,sf::Color::White);
+    for(int i=0;i<3;i++){
+      temp.setPosition({float(player.x),float(player.y-i*4)});
+      particledeque.push_back(temp);
+    }
   }
   if(cancel==2&&player.xvelocity<=2){//공격 키를 눌렀을 시
     floating=false;
@@ -299,6 +355,7 @@ void gameloopupdate() {
 
 void gameoverupdate(){
   if(deathanim>0){
+    iframes=0;
     view.setCenter({Lerp(view.getCenter().x,float(player.x),0.5f),Lerp(view.getCenter().y,float(player.y),0.5f)});
     deathanim--;
     if(deathanim==0)player.yvelocity=-4;
@@ -558,6 +615,9 @@ void gamelooprender() {//메인 게임 랜더 함수
   tri[3].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy2);
   tri[4].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy1);
   rt.draw(tri);
+
+
+  for(int i=0;i<particledeque.size();i++)if(particledeque[i].frame<particledeque[i].len)rt.draw(particledeque[i]);
 
   tri.resize(4);
   tri.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
