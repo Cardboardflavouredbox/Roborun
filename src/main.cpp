@@ -99,7 +99,7 @@ struct entity{//엔티티 클래스
     int x=0,y=0;
     float xvelocity=0;//X 속도
     float yvelocity=0;//Y 속도
-    int vertx=-8,verty=-1,vertx2=8,verty2=0;
+    int vertx=-8,verty=-16,vertx2=8,verty2=0;
     int hitboxx1=-8,hitboxy1=-16,hitboxx2=8,hitboxy2=0;
     int anim=0;
 };
@@ -114,6 +114,8 @@ void debugset(){
 
 void setgame(){//게임세팅 함수
   tempmap=currentmap;
+  map newthing;
+  loadedmap=newthing;
   player.x=0;player.y=0;
   player.yvelocity=0;
   view.setCenter({float(player.x+64),-64});
@@ -190,6 +192,7 @@ void keypresscheck(sf::Keyboard::Key keycode, char* key) {//키 인식 함수
 void groundcollisioncheck(){//땅 인식 함수
   groundcheck=false;
   player.y++;
+  player.hitboxy1=-1;
   for(int i=0;i<loadedmap.grounddeque.size();i++){
     if(overlap(player,loadedmap.grounddeque[i])){
       groundcheck=true;
@@ -201,6 +204,7 @@ void groundcollisioncheck(){//땅 인식 함수
 }
 
 void obstaclecollisioncheck(){//장애물 인식 함수
+  player.hitboxy1=-16;
   for(int i=0;i<loadedmap.obstacledeque.size();i++){
     if(!loadedmap.obstacledeque[i].destroyed&&overlap(player,loadedmap.obstacledeque[i])){
       hp--;
@@ -271,16 +275,16 @@ void gameloopupdate() {
   }
   
 
-  if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<view.getCenter().x+160){
+  if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<player.x+160){
     loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
     tempmap.grounddeque.pop_front();
   }
-  if(!tempmap.obstacledeque.empty()&&tempmap.obstacledeque.front().x<view.getCenter().x+160){
+  if(!tempmap.obstacledeque.empty()&&tempmap.obstacledeque.front().x<player.x+160){
     loadedmap.obstacledeque.push_back(tempmap.obstacledeque.front());
     tempmap.obstacledeque.pop_front();
   }
-  if(!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.back().x+loadedmap.grounddeque.back().x2<view.getCenter().x-160)loadedmap.grounddeque.pop_back();
-  if(!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.back().x+loadedmap.obstacledeque.back().x2<view.getCenter().x-160)loadedmap.obstacledeque.pop_back();
+  if(!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.front().x+loadedmap.grounddeque.front().x2<player.x-160)loadedmap.grounddeque.pop_front();
+  if(!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.front().x+loadedmap.obstacledeque.front().x2<player.x-160)loadedmap.obstacledeque.pop_front();
 
   groundcollisioncheck();
 
@@ -389,16 +393,24 @@ void debugupdate(){
   if(right==2)view.setCenter(view.getCenter()+sf::Vector2f(40,0));
   if(left==2)view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
   if(save==2){
-    std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
-    std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
     for(int i=0;i<loadedmap.grounddeque.size();i++){
       if(loadedmap.grounddeque[i].x2<0){loadedmap.grounddeque[i].x+=loadedmap.grounddeque[i].x2;loadedmap.grounddeque[i].x2*=-1;}
       if(loadedmap.grounddeque[i].y2<0){loadedmap.grounddeque[i].y+=loadedmap.grounddeque[i].y2;loadedmap.grounddeque[i].y2*=-1;}
+      if(loadedmap.grounddeque[i].x2==0||loadedmap.grounddeque[i].y2==0){
+        loadedmap.grounddeque.erase(loadedmap.grounddeque.begin()+i);
+        i--;
+      }
     }
     for(int i=0;i<loadedmap.obstacledeque.size();i++){
       if(loadedmap.obstacledeque[i].x2<0){loadedmap.obstacledeque[i].x+=loadedmap.obstacledeque[i].x2;loadedmap.obstacledeque[i].x2*=-1;}
       if(loadedmap.obstacledeque[i].y2<0){loadedmap.obstacledeque[i].y+=loadedmap.obstacledeque[i].y2;loadedmap.obstacledeque[i].y2*=-1;}
+      if(loadedmap.obstacledeque[i].x2==0||loadedmap.obstacledeque[i].y2==0){
+        loadedmap.obstacledeque.erase(loadedmap.obstacledeque.begin()+i);
+        i--;
+      }
     }
+    std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
+    std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
     auto error=glz::write_file_json(loadedmap,"assets/database/map.json",std::string{});
     if(error){
       std::string error_msg = glz::format_error(error, "assets/database/map.json");
@@ -581,10 +593,10 @@ void gamelooprender() {//메인 게임 랜더 함수
 
   if((iframes/4)%2==0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-    tri[0].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy1);
-    tri[1].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy1);
-    tri[2].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy2);
-    tri[3].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy2);
+    tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
+    tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
+    tri[2].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty2);
+    tri[3].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty2);
     player.anim++;
     if(player.anim>39)player.anim=0;
     int anim=0;
@@ -600,10 +612,10 @@ void gamelooprender() {//메인 게임 랜더 함수
       case 1:anim=1;break;
       case 3:anim=2;break;
     }
-    tri[0].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),0);
-    tri[1].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),0);
-    tri[2].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
-    tri[3].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+    tri[0].texCoords=sf::Vector2f((anim)*(player.vertx2-player.vertx),0);
+    tri[1].texCoords=sf::Vector2f((1+anim)*(player.vertx2-player.vertx),0);
+    tri[2].texCoords=sf::Vector2f((anim)*(player.vertx2-player.vertx),player.verty2-player.verty);
+    tri[3].texCoords=sf::Vector2f((1+anim)*(player.vertx2-player.vertx),player.verty2-player.verty);
     rt.draw(tri,&texturemap["Player"]);
   }
   // for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
