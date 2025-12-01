@@ -99,7 +99,7 @@ struct entity{//엔티티 클래스
     int x=0,y=0;
     float xvelocity=0;//X 속도
     float yvelocity=0;//Y 속도
-    int vertx=-8,verty=-1,vertx2=8,verty2=0;
+    int vertx=-8,verty=-16,vertx2=8,verty2=0;
     int hitboxx1=-8,hitboxy1=-16,hitboxx2=8,hitboxy2=0;
     int anim=0;
 };
@@ -583,10 +583,10 @@ void gamelooprender() {//메인 게임 랜더 함수
 
   if((iframes/4)%2==0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-    tri[0].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy1);
-    tri[1].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy1);
-    tri[2].position=sf::Vector2f(player.x+player.hitboxx1,player.y+player.hitboxy2);
-    tri[3].position=sf::Vector2f(player.x+player.hitboxx2,player.y+player.hitboxy2);
+    tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
+    tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
+    tri[2].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty2);
+    tri[3].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty2);
     player.anim++;
     if(player.anim>39)player.anim=0;
     int anim=0;
@@ -602,10 +602,10 @@ void gamelooprender() {//메인 게임 랜더 함수
       case 1:anim=1;break;
       case 3:anim=2;break;
     }
-    tri[0].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),0);
-    tri[1].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),0);
-    tri[2].texCoords=sf::Vector2f((anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
-    tri[3].texCoords=sf::Vector2f((1+anim)*(player.hitboxx2-player.hitboxx1),player.hitboxy2-player.hitboxy1);
+    tri[0].texCoords=sf::Vector2f((anim)*(player.vertx2-player.vertx),0);
+    tri[1].texCoords=sf::Vector2f((1+anim)*(player.vertx2-player.vertx),0);
+    tri[2].texCoords=sf::Vector2f((anim)*(player.vertx2-player.vertx),player.verty2-player.verty);
+    tri[3].texCoords=sf::Vector2f((1+anim)*(player.vertx2-player.vertx),player.verty2-player.verty);
     rt.draw(tri,&texturemap["Player"]);
   }
   // for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
