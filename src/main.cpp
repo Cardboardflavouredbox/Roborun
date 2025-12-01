@@ -114,6 +114,8 @@ void debugset(){
 
 void setgame(){//게임세팅 함수
   tempmap=currentmap;
+  map newthing;
+  loadedmap=newthing;
   player.x=0;player.y=0;
   player.yvelocity=0;
   view.setCenter({float(player.x+64),-64});
@@ -273,16 +275,16 @@ void gameloopupdate() {
   }
   
 
-  if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<view.getCenter().x+160){
+  if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<player.x+160){
     loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
     tempmap.grounddeque.pop_front();
   }
-  if(!tempmap.obstacledeque.empty()&&tempmap.obstacledeque.front().x<view.getCenter().x+160){
+  if(!tempmap.obstacledeque.empty()&&tempmap.obstacledeque.front().x<player.x+160){
     loadedmap.obstacledeque.push_back(tempmap.obstacledeque.front());
     tempmap.obstacledeque.pop_front();
   }
-  if(!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.back().x+loadedmap.grounddeque.back().x2<view.getCenter().x-160)loadedmap.grounddeque.pop_back();
-  if(!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.back().x+loadedmap.obstacledeque.back().x2<view.getCenter().x-160)loadedmap.obstacledeque.pop_back();
+  if(!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.front().x+loadedmap.grounddeque.front().x2<player.x-160)loadedmap.grounddeque.pop_front();
+  if(!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.front().x+loadedmap.obstacledeque.front().x2<player.x-160)loadedmap.obstacledeque.pop_front();
 
   groundcollisioncheck();
 
@@ -391,16 +393,24 @@ void debugupdate(){
   if(right==2)view.setCenter(view.getCenter()+sf::Vector2f(40,0));
   if(left==2)view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
   if(save==2){
-    std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
-    std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
     for(int i=0;i<loadedmap.grounddeque.size();i++){
       if(loadedmap.grounddeque[i].x2<0){loadedmap.grounddeque[i].x+=loadedmap.grounddeque[i].x2;loadedmap.grounddeque[i].x2*=-1;}
       if(loadedmap.grounddeque[i].y2<0){loadedmap.grounddeque[i].y+=loadedmap.grounddeque[i].y2;loadedmap.grounddeque[i].y2*=-1;}
+      if(loadedmap.grounddeque[i].x2==0||loadedmap.grounddeque[i].y2==0){
+        loadedmap.grounddeque.erase(loadedmap.grounddeque.begin()+i);
+        i--;
+      }
     }
     for(int i=0;i<loadedmap.obstacledeque.size();i++){
       if(loadedmap.obstacledeque[i].x2<0){loadedmap.obstacledeque[i].x+=loadedmap.obstacledeque[i].x2;loadedmap.obstacledeque[i].x2*=-1;}
       if(loadedmap.obstacledeque[i].y2<0){loadedmap.obstacledeque[i].y+=loadedmap.obstacledeque[i].y2;loadedmap.obstacledeque[i].y2*=-1;}
+      if(loadedmap.obstacledeque[i].x2==0||loadedmap.obstacledeque[i].y2==0){
+        loadedmap.obstacledeque.erase(loadedmap.obstacledeque.begin()+i);
+        i--;
+      }
     }
+    std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
+    std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
     auto error=glz::write_file_json(loadedmap,"assets/database/map.json",std::string{});
     if(error){
       std::string error_msg = glz::format_error(error, "assets/database/map.json");
