@@ -1,0 +1,20 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "GCC 15.2.0 x86_64-w64-mingw32",
+            "displayName": "예찬용",
+            "description": "Using compilers: C = c:\\compiler\\mingw64\\bin\\gcc.exe, CXX = c:\\compiler\\mingw64\\bin\\g++.exe",
+            "generator": "MinGW Makefiles",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "c:/compiler/mingw64/bin/gcc.exe",
+                "CMAKE_CXX_COMPILER": "c:/compiler/mingw64/bin/g++.exe",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_MAKE_PROGRAM":"c:/compiler/mingw64/bin/mingw32-make.exe",
+                "CMAKE_RC_COMPILER":"c:/compiler/mingw64/bin/windres.exe"
+            }
+        }
+    ]
+}
