@@ -190,6 +190,7 @@ void keypresscheck(sf::Keyboard::Key keycode, char* key) {//키 인식 함수
 void groundcollisioncheck(){//땅 인식 함수
   groundcheck=false;
   player.y++;
+  player.hitboxy1=-1;
   for(int i=0;i<loadedmap.grounddeque.size();i++){
     if(overlap(player,loadedmap.grounddeque[i])){
       groundcheck=true;
@@ -201,6 +202,7 @@ void groundcollisioncheck(){//땅 인식 함수
 }
 
 void obstaclecollisioncheck(){//장애물 인식 함수
+  player.hitboxy1=-16;
   for(int i=0;i<loadedmap.obstacledeque.size();i++){
     if(!loadedmap.obstacledeque[i].destroyed&&overlap(player,loadedmap.obstacledeque[i])){
       hp--;
