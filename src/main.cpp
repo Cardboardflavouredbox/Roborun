@@ -9,7 +9,7 @@
 sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
 sf::RenderTexture uirt({160,144});//
 auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
-char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0, start = 0, save = 0, leftclick = 0, rightclick = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
+char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0, start = 0, save = 0, leftclick = 0, rightclick = 0, esc = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
 sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   downkey = sf::Keyboard::Key::Down,
                   upkey = sf::Keyboard::Key::Up,
@@ -18,7 +18,8 @@ sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   cancelkey = sf::Keyboard::Key::X,
                   startkey = sf::Keyboard::Key::Enter,
                   selectkey = sf::Keyboard::Key::C,
-                  savekey = sf::Keyboard::Key::S;
+                  savekey = sf::Keyboard::Key::S,
+                  esckey = sf::Keyboard::Key::Escape;
 sf::View view({0.f, 0.f}, {160.f, 144.f});
 bool groundcheck=false;//땅에 닿았는지 여부
 bool doublejump=true;//더블점프 가능 여부
@@ -448,6 +449,11 @@ void debugupdate(){
   }
   if(leftclick==0&&!loadedmap.grounddeque.empty()&&loadedmap.grounddeque.back().x2==loadedmap.grounddeque.back().x)loadedmap.grounddeque.pop_back();
   if(leftclick==0&&!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.back().x2==loadedmap.obstacledeque.back().x)loadedmap.obstacledeque.pop_back();
+
+  if(esc==2){
+    mainmenu=true;
+    setgame();
+  }
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
@@ -460,6 +466,7 @@ void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   keypresscheck(startkey,&start);
   keypresscheck(selectkey,&select);
   keypresscheck(savekey,&save);
+  keypresscheck(esckey,&esc);
   if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
     if(leftclick==0)leftclick=2;
     else leftclick=1;
