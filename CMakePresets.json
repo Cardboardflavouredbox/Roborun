@@ -12,8 +12,20 @@
                 "CMAKE_C_COMPILER": "c:/compiler/mingw64/bin/gcc.exe",
                 "CMAKE_CXX_COMPILER": "c:/compiler/mingw64/bin/g++.exe",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_MAKE_PROGRAM":"c:/compiler/mingw64/bin/mingw32-make.exe",
-                "CMAKE_RC_COMPILER":"c:/compiler/mingw64/bin/windres.exe"
+                "CMAKE_MAKE_PROGRAM": "c:/compiler/mingw64/bin/mingw32-make.exe",
+                "CMAKE_RC_COMPILER": "c:/compiler/mingw64/bin/windres.exe"
+            }
+        },
+        {
+            "name": "Clang 17.0.0 arm64-apple-darwin24.5.0",
+            "displayName": "민준용",
+            "description": "컴파일러를 사용하는 중: C = /usr/bin/clang, CXX = /usr/bin/clang++",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/clang",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         }
     ]
