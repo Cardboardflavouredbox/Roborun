@@ -46,7 +46,7 @@ float Lerp(float A, float B, float Alpha) {//선형 보간 함수
 class Particle : public sf::Drawable, public sf::Transformable
 {
 public:
-    void set(unsigned int size,unsigned int length,unsigned int codething,float direction,float speedthing,sf::PrimitiveType type,sf::Color color){
+    void set(unsigned int size,unsigned int length,unsigned int codething,float direction,float speedthing,sf::PrimitiveType type,sf::Color color, bool hitstopthing){
       va.resize(size);
       va.setPrimitiveType(type);
       for(unsigned int i=0;i<size;i++)va[0].color=color;
@@ -55,16 +55,25 @@ public:
       code=codething;
       dir=direction;
       speed=speedthing;
+      movewhenhitstop=hitstopthing;
     }
     void update(){
       switch(code){
         case 0:{//basic particle
-            va[0].position=sf::Vector2f(std::cos(dir * 3.14 / 180) * frame * speed,std::sin(dir * 3.14 / 180) * frame * speed);
+            va[0].position=sf::Vector2f(std::cos(dir * 3.14 / 180) * frame * speed,std::sin(dir * 3.14 / 180) * frame * speed);break;
+        }
+        case 1:{//slash effect
+            va[0].position=sf::Vector2f(std::cos(dir * 3.14 / 180)*16,std::sin(dir * 3.14 / 180)*16);
+            va[1].position=sf::Vector2f(std::cos((dir-90) * 3.14 / 180)*4,std::sin((dir-90)* 3.14 / 180)*4);
+            va[2].position=sf::Vector2f(std::cos((dir+90)* 3.14 / 180)*4,std::sin((dir+90) * 3.14 / 180)*4);
+            va[3].position=sf::Vector2f(std::cos((dir+180) * 3.14 / 180)*16,std::sin((dir+180) * 3.14 / 180)*16);
+            break;
         }
       }
       frame++;
     }
     unsigned int frame,len,code;
+    bool movewhenhitstop=false;
 
 private:
     void draw(sf::RenderTarget& target, sf::RenderStates states) const override
@@ -232,6 +241,37 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
         doublejump=true;//더블점프 활성화
         dash=true;//대시 활성화
       }
+      Particle temppart;
+
+      float tempx,tempy;
+
+      if(temp.x+temp.hitboxx1<loadedmap.obstacledeque[i].x)tempx=loadedmap.obstacledeque[i].x;
+      else tempx=temp.x+temp.hitboxx1;
+      if(temp.x+temp.hitboxx1+temp.hitboxx2>loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2)tempx+=loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2;
+      else tempx+=temp.x+temp.hitboxx1+temp.hitboxx2;
+      tempx/=2;
+
+      if(temp.y+temp.hitboxy1<loadedmap.obstacledeque[i].y)tempy=loadedmap.obstacledeque[i].y;
+      else tempy=temp.y+temp.hitboxy1;
+      if(temp.y+temp.hitboxy1+temp.hitboxy2>loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2)tempy+=loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2;
+      else tempy+=temp.y+temp.hitboxy1+temp.hitboxy2;
+      tempy/=2;
+
+
+
+
+
+      temppart.setPosition({tempx,tempy});
+
+      for(int j=0;j<8;j++){
+        temppart.set(1,30,0,j*45,1.f,sf::PrimitiveType::Points,sf::Color::White,true);
+        particledeque.push_back(temppart);
+      }
+
+
+      temppart.set(4,5,1,atan2(-temppart.getPosition().x+player.x,-temppart.getPosition().y+player.y+player.verty2/2)*180/3.14f,1.f,sf::PrimitiveType::TriangleStrip,sf::Color::White,true);
+      particledeque.push_back(temppart);
+
       break;
       }
   }
@@ -268,12 +308,6 @@ void mainmenuupdate(){
 
 void gameloopupdate() {
   view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
-  
-  if(!particledeque.empty()&&particledeque.front().frame>=particledeque.front().len)particledeque.pop_front();
-  for(int i=0;i<particledeque.size();i++){
-    particledeque[i].update();
-  }
-  
 
   if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<player.x+160){
     loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
@@ -305,7 +339,7 @@ void gameloopupdate() {
       doublejump=false;
       player.yvelocity=-7;
       Particle temp;
-      temp.set(1,30,0,90,0.5f,sf::PrimitiveType::Points,sf::Color::White);
+      temp.set(1,30,0,90,0.5f,sf::PrimitiveType::Points,sf::Color::White,false);
       for(int i=0;i<4;i++){
         temp.setPosition({float(player.x+8-i*4),float(player.y)});
         particledeque.push_back(temp);
@@ -322,7 +356,7 @@ void gameloopupdate() {
     player.xvelocity=10;
     player.yvelocity=0;
     Particle temp;
-    temp.set(1,30,0,180,0.5f,sf::PrimitiveType::Points,sf::Color::White);
+    temp.set(1,30,0,180,0.5f,sf::PrimitiveType::Points,sf::Color::White,false);
     for(int i=0;i<3;i++){
       temp.setPosition({float(player.x),float(player.y-i*4)});
       particledeque.push_back(temp);
@@ -376,11 +410,18 @@ void gameoverupdate(){
 }
 
 void update(){
+  if(!particledeque.empty()&&particledeque.front().frame>=particledeque.front().len)particledeque.pop_front();
   if(hitstop>0){
+    for(int i=0;i<particledeque.size();i++){
+      if(particledeque[i].movewhenhitstop)particledeque[i].update();
+    }
     hitstop--;
     if(hitstop==0)attacking=0;
     }
   else{
+    for(int i=0;i<particledeque.size();i++){
+      particledeque[i].update();
+    }
     gettinghit=false;
     if(mainmenu)mainmenuupdate();
     else if(hp>0)gameloopupdate();
