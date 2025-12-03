@@ -1,5 +1,6 @@
 // Copyright 2025 Greenbox
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <glaze/glaze.hpp>
 #include <deque>
 #include <algorithm>
@@ -38,6 +39,8 @@ char hitstop=0;//히트스탑
 int deathanim=60;
 bool placetypeground=true;
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
+std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
+sf::Sound sound(soundmap["temp"]);
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
   return A * (1 - Alpha) + B * Alpha;
@@ -222,6 +225,9 @@ void obstaclecollisioncheck(){//장애물 인식 함수
       iframes=96;
       hitstop=7;
       gettinghit=true;
+      doublejump=true;
+      dash=true;
+      sound.setBuffer(soundmap["HitHurt"]);sound.play();
       break;
       }
   }
@@ -258,9 +264,6 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
       tempy/=2;
 
 
-
-
-
       temppart.setPosition({tempx,tempy});
 
       for(int j=0;j<8;j++){
@@ -271,6 +274,8 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
 
       temppart.set(4,5,1,atan2(-temppart.getPosition().x+player.x,-temppart.getPosition().y+player.y+player.verty2/2)*180/3.14f,1.f,sf::PrimitiveType::TriangleStrip,sf::Color::White,true);
       particledeque.push_back(temppart);
+
+      sound.setBuffer(soundmap["SlashLand"]);sound.play();
 
       break;
       }
@@ -334,7 +339,7 @@ void gameloopupdate() {
   if(player.xvelocity==2&&groundcheck)dash=true;
   if(confirm==2&&player.xvelocity<=2){//점프 키를 눌렀을 시
     floating=false;
-    if(groundcheck){player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
+    if(groundcheck){sound.setBuffer(soundmap["Jump"]);sound.play();player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
     else if(doublejump){//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
       doublejump=false;
       player.yvelocity=-7;
@@ -344,6 +349,7 @@ void gameloopupdate() {
         temp.setPosition({float(player.x+8-i*4),float(player.y)});
         particledeque.push_back(temp);
       }
+      sound.setBuffer(soundmap["Jump"]);sound.play();
     }
   }
   else if(confirm==1){//점프 키를 꾹 눌렀을 시
@@ -363,6 +369,7 @@ void gameloopupdate() {
     }
   }
   if(cancel==2&&player.xvelocity<=2){//공격 키를 눌렀을 시
+    sound.setBuffer(soundmap["Slash"]);sound.play();
     floating=false;
     if(groundcheck)attacking=10;//공격 변수 2로 설정 (양수일시 가로 공격)
     else attacking=-10;//공격 변수 -2로 설정 (음수일시 세로 공격)
@@ -719,7 +726,11 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
   !texturemap["Background1"].loadFromFile("assets/images/Background.png")||
   !texturemap["Options"].loadFromFile("assets/images/Options.png")||
-  !texturemap["Slash"].loadFromFile("assets/images/Slash.png"))return -1;//텍스쳐 파일 읽는 코드
+  !texturemap["Slash"].loadFromFile("assets/images/Slash.png")||
+  !soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
+  !soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
+  !soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
+  !soundmap["SlashLand"].loadFromFile("assets/sound/slashland.wav"))return -1;//텍스쳐 파일 읽는 코드
   window.setFramerateLimit(60);//60fps로 제한
   window.setVerticalSyncEnabled(true);
 
