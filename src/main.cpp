@@ -92,7 +92,10 @@ std::deque<Particle> particledeque;
 
 struct ground{//땅 클래스
     int x,y,x2,y2;
-    bool operator< (const ground& temp) const {return x < temp.x;}
+    bool operator< (const ground& temp) const {
+      if(x==temp.x) return y<temp.y;
+      return x < temp.x;
+      }
 };
 struct obstacle{//장애물 클래스
     int x,y,x2,y2;
@@ -310,7 +313,6 @@ void mainmenuupdate(){
   }
 }
 
-
 void gameloopupdate() {
   view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
 
@@ -438,8 +440,8 @@ void update(){
 
 void debugupdate(){
   if(confirm==2&&leftclick==0&&rightclick==0)placetypeground=!placetypeground;
-  if(right==2)view.setCenter(view.getCenter()+sf::Vector2f(40,0));
-  if(left==2)view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
+  if(right==2||(cancel>0&&right>0))view.setCenter(view.getCenter()+sf::Vector2f(40,0));
+  if(left==2||(cancel>0&&left>0))view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
   if(save==2){
     for(int i=0;i<loadedmap.grounddeque.size();i++){
       if(loadedmap.grounddeque[i].x2<0){loadedmap.grounddeque[i].x+=loadedmap.grounddeque[i].x2;loadedmap.grounddeque[i].x2*=-1;}
@@ -589,9 +591,24 @@ void gamelooprender() {//메인 게임 랜더 함수
     for(int i=0;i<loadedmap.grounddeque.size();i++){
       tri[0].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y);
       tri[1].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y);
-      tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
-      tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+loadedmap.grounddeque[i].y2);
-      rt.draw(tri);
+      tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+16);
+      tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+16);
+      tri[0].texCoords=sf::Vector2f(0,0);
+      tri[1].texCoords=sf::Vector2f(48,0);
+      tri[2].texCoords=sf::Vector2f(0,16);
+      tri[3].texCoords=sf::Vector2f(48,16);
+      rt.draw(tri,&texturemap["Tileset"]);
+      tri[0].texCoords=sf::Vector2f(0,16);
+      tri[1].texCoords=sf::Vector2f(48,16);
+      tri[2].texCoords=sf::Vector2f(0,32);
+      tri[3].texCoords=sf::Vector2f(48,32);
+      for(int j=1;j<16;j++){
+        tri[0].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+16*j);
+        tri[1].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+16*j);
+        tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+16*(j+1));
+        tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+16*(1+j));
+        rt.draw(tri,&texturemap["Tileset"]);
+      }
     }
     for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
     for(int i=0;i<loadedmap.obstacledeque.size();i++){
@@ -727,6 +744,7 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   !texturemap["Background1"].loadFromFile("assets/images/Background.png")||
   !texturemap["Options"].loadFromFile("assets/images/Options.png")||
   !texturemap["Slash"].loadFromFile("assets/images/Slash.png")||
+  !texturemap["Tileset"].loadFromFile("assets/images/Tileset.png")||
   !soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
   !soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
   !soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
