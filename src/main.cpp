@@ -41,6 +41,8 @@ bool placetypeground=true;
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
 sf::Sound sound(soundmap["temp"]);
+sf::Font font;
+sf::Text text(font);
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
   return A * (1 - Alpha) + B * Alpha;
@@ -409,11 +411,14 @@ void gameoverupdate(){
     if(deathanim==0)player.yvelocity=-4;
   }
   else{
-    player.y+=player.yvelocity;
-    player.yvelocity+=0.25f;
     if(player.yvelocity>16){
-      mainmenu=true;
-      setgame();
+      mainmenulerp=Lerp(mainmenulerp,0,0.1f);
+      if(confirm==2){mainmenu=true;setgame();}
+    }
+    else{
+      player.y+=player.yvelocity;
+      player.yvelocity+=0.25f;
+      if(player.yvelocity>16)mainmenulerp=160;
     }
   }
 }
@@ -717,6 +722,22 @@ void gamelooprender() {//메인 게임 랜더 함수
     }
   }
 
+  if(player.yvelocity>16&&deathanim==0&&hp<1){
+    tri[0].position=sf::Vector2f(0,int(mainmenulerp)+8);
+    tri[1].position=sf::Vector2f(160,int(mainmenulerp)+8);
+    tri[2].position=sf::Vector2f(0,int(mainmenulerp)+40);
+    tri[3].position=sf::Vector2f(160,int(mainmenulerp)+40);
+    tri[0].texCoords=sf::Vector2f(0,0);
+    tri[1].texCoords=sf::Vector2f(160,0);
+    tri[2].texCoords=sf::Vector2f(0,32);
+    tri[3].texCoords=sf::Vector2f(160,32);
+    text.setString("Score: "+std::to_string(player.x));
+    uirt.draw(tri,&texturemap["Gameover"]);
+    text.setScale({1,1});
+    text.setPosition({32,float(int(mainmenulerp)+80)});
+    uirt.draw(text);
+  }
+
   
 }
 
@@ -745,13 +766,17 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   !texturemap["Options"].loadFromFile("assets/images/Options.png")||
   !texturemap["Slash"].loadFromFile("assets/images/Slash.png")||
   !texturemap["Tileset"].loadFromFile("assets/images/Tileset.png")||
+  !texturemap["Gameover"].loadFromFile("assets/images/Gameover.png")||
   !soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
   !soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
   !soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
-  !soundmap["SlashLand"].loadFromFile("assets/sound/slashland.wav"))return -1;//텍스쳐 파일 읽는 코드
+  !soundmap["SlashLand"].loadFromFile("assets/sound/slashland.wav")||
+  !font.openFromFile("assets/font/Galmuri11.ttf"))return -1;//텍스쳐 파일 읽는 코드
   window.setFramerateLimit(60);//60fps로 제한
-  window.setVerticalSyncEnabled(true);
 
+
+  text.setFont(font);
+  text.setCharacterSize(12);
 
   debugdelete.hitboxx1=0;debugdelete.hitboxx2=0;
   debugdelete.hitboxy1=0;debugdelete.hitboxy2=0;
