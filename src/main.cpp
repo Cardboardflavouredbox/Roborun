@@ -163,7 +163,7 @@ bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 �
     return true;
 }
 
-bool overlap(entity p,obstacle g)//엔티티와 땅이 겹치는지 확인하는 함수
+bool overlap(entity p,obstacle g)//엔티티와 장애물이 겹치는지 확인하는 함수
 {
    if (p.hitboxx1+p.x >= g.x+g.x2 || g.x >= p.hitboxx2+p.x )
         return false;
@@ -735,8 +735,34 @@ void gamelooprender() {//메인 게임 랜더 함수
     tri[1].position=sf::Vector2f(160,0);
     tri[2].position=sf::Vector2f(144,16);
     tri[3].position=sf::Vector2f(160,16);
-    for(int i=0;i<hp;i++){
-        uirt.draw(tri);
+    for(int i=0;i<3;i++){
+        if(gettinghit&&i==hp){
+          tri[0].texCoords=sf::Vector2f(48,0);
+          tri[1].texCoords=sf::Vector2f(64,0);
+          tri[2].texCoords=sf::Vector2f(48,16);
+          tri[3].texCoords=sf::Vector2f(64,16);
+        }
+        else if(i<hp){
+          if(player.anim>30){
+            tri[0].texCoords=sf::Vector2f(32,0);
+            tri[1].texCoords=sf::Vector2f(48,0);
+            tri[2].texCoords=sf::Vector2f(32,16);
+            tri[3].texCoords=sf::Vector2f(48,16);
+          }
+          else{
+            tri[0].texCoords=sf::Vector2f(16,0);
+            tri[1].texCoords=sf::Vector2f(32,0);
+            tri[2].texCoords=sf::Vector2f(16,16);
+            tri[3].texCoords=sf::Vector2f(32,16);
+          }
+        }
+        else{
+          tri[0].texCoords=sf::Vector2f(0,0);
+          tri[1].texCoords=sf::Vector2f(16,0);
+          tri[2].texCoords=sf::Vector2f(0,16);
+          tri[3].texCoords=sf::Vector2f(16,16);
+        }
+        uirt.draw(tri,&texturemap["Health"]);
         for(int j=0;j<4;j++)tri[j].position-=sf::Vector2f(16,0);
     }
     text.setPosition({0,0});
@@ -800,6 +826,7 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   !texturemap["Slash"].loadFromFile("assets/images/Slash.png")||
   !texturemap["Tileset"].loadFromFile("assets/images/Tileset.png")||
   !texturemap["Gameover"].loadFromFile("assets/images/Gameover.png")||
+  !texturemap["Health"].loadFromFile("assets/images/Health.png")||
   !soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
   !soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
   !soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
