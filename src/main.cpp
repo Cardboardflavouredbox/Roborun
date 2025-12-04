@@ -38,6 +38,7 @@ char mainmenuoption=0;//메인 메뉴 선택
 char hitstop=0;//히트스탑
 int deathanim=60;
 bool placetypeground=true;
+float score=0;
 std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
 std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
 sf::Sound sound(soundmap["temp"]);
@@ -251,6 +252,7 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
         player.yvelocity=-5;//세로 공격 적중 시 튀어오름
         doublejump=true;//더블점프 활성화
         dash=true;//대시 활성화
+        score+=50;
       }
       Particle temppart;
 
@@ -388,6 +390,7 @@ void gameloopupdate() {
   }
   groundcollisioncheck();
   player.x+=player.xvelocity;
+  score+=player.xvelocity/8.f;
   if(player.yvelocity<0)player.y+=player.yvelocity;
   else for(int i=0;i<player.yvelocity;i++){
     player.y++;
@@ -714,21 +717,36 @@ void gamelooprender() {//메인 게임 랜더 함수
 
   for(int i=0;i<particledeque.size();i++)if(particledeque[i].frame<particledeque[i].len)rt.draw(particledeque[i]);
 
-  tri.resize(4);
-  tri.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
-  for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-  tri[0].position=sf::Vector2f(0,0);
-  tri[1].position=sf::Vector2f(16,0);
-  tri[2].position=sf::Vector2f(0,16);
-  tri[3].position=sf::Vector2f(16,16);
-  for(int i=0;i<3;i++){
-    if(i<hp){
-      uirt.draw(tri);
-      for(int j=0;j<4;j++)tri[j].position+=sf::Vector2f(16,0);
+  if(hp>0){
+    tri.resize(4);
+    tri.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
+
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::Black;
+
+    tri[0].position=sf::Vector2f(0,0);
+    tri[1].position=sf::Vector2f(160,0);
+    tri[2].position=sf::Vector2f(0,16);
+    tri[3].position=sf::Vector2f(160,16);
+    uirt.draw(tri);
+
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
+    tri[0].position=sf::Vector2f(144,0);
+    tri[1].position=sf::Vector2f(160,0);
+    tri[2].position=sf::Vector2f(144,16);
+    tri[3].position=sf::Vector2f(160,16);
+    for(int i=0;i<hp;i++){
+        uirt.draw(tri);
+        for(int j=0;j<4;j++)tri[j].position-=sf::Vector2f(16,0);
     }
+    text.setPosition({0,0});
+    text.setString("Score: "+std::to_string((int)score));
+    uirt.draw(text);
   }
 
   if(player.yvelocity>16&&deathanim==0&&hp<1){
+    tri.resize(4);
+    tri.setPrimitiveType(sf::PrimitiveType::TriangleStrip);
+    for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
     tri[0].position=sf::Vector2f(0,int(mainmenulerp)+16);
     tri[1].position=sf::Vector2f(160,int(mainmenulerp)+16);
     tri[2].position=sf::Vector2f(0,int(mainmenulerp)+48);
@@ -738,7 +756,7 @@ void gamelooprender() {//메인 게임 랜더 함수
     tri[2].texCoords=sf::Vector2f(0,32);
     tri[3].texCoords=sf::Vector2f(160,32);
     uirt.draw(tri,&texturemap["Gameover"]);
-    text.setString("Score: "+std::to_string(player.x));
+    text.setString("Score: "+std::to_string((int)score));
     text.setPosition({32,float(int(mainmenulerp)+80)});
     uirt.draw(text);
     if(mainmenuoption==0)text.setString("> Restart");
