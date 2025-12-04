@@ -571,19 +571,19 @@ void gamelooprender() {//메인 게임 랜더 함수
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   if(hp>0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-    tri[0].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,-72-64);
-    tri[1].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,-72-64);
-    tri[2].position=sf::Vector2f(view.getCenter().x-80-(player.x/2)%160,72-64);
-    tri[3].position=sf::Vector2f(view.getCenter().x+80-(player.x/2)%160,72-64);
+    tri[0].position=sf::Vector2f(view.getCenter().x-170-(player.x/2)%340,-72-64);
+    tri[1].position=sf::Vector2f(view.getCenter().x+170-(player.x/2)%340,-72-64);
+    tri[2].position=sf::Vector2f(view.getCenter().x-170-(player.x/2)%340,72-64);
+    tri[3].position=sf::Vector2f(view.getCenter().x+170-(player.x/2)%340,72-64);
     tri[0].texCoords=sf::Vector2f(0,0);
-    tri[1].texCoords=sf::Vector2f(160,0);
+    tri[1].texCoords=sf::Vector2f(340,0);
     tri[2].texCoords=sf::Vector2f(0,144);
-    tri[3].texCoords=sf::Vector2f(160,144);
-    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(-160,0);
+    tri[3].texCoords=sf::Vector2f(340,144);
+    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(-340,0);
     rt.draw(tri,&texturemap["Background1"]);
-    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
+    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(340,0);
     rt.draw(tri,&texturemap["Background1"]);
-    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(160,0);
+    for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(340,0);
     rt.draw(tri,&texturemap["Background1"]);
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
     for(int i=0;i<loadedmap.grounddeque.size();i++){
