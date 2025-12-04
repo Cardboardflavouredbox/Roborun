@@ -413,7 +413,13 @@ void gameoverupdate(){
   else{
     if(player.yvelocity>16){
       mainmenulerp=Lerp(mainmenulerp,0,0.1f);
-      if(confirm==2){mainmenu=true;setgame();}
+      if(up==2)mainmenuoption=0;
+      else if(down==2)mainmenuoption=1;
+      else if(confirm==2){
+        if(mainmenuoption==1)mainmenu=true;
+        setgame();
+        mainmenuoption=0;
+      }
     }
     else{
       player.y+=player.yvelocity;
@@ -723,21 +729,29 @@ void gamelooprender() {//메인 게임 랜더 함수
   }
 
   if(player.yvelocity>16&&deathanim==0&&hp<1){
-    tri[0].position=sf::Vector2f(0,int(mainmenulerp)+8);
-    tri[1].position=sf::Vector2f(160,int(mainmenulerp)+8);
-    tri[2].position=sf::Vector2f(0,int(mainmenulerp)+40);
-    tri[3].position=sf::Vector2f(160,int(mainmenulerp)+40);
+    tri[0].position=sf::Vector2f(0,int(mainmenulerp)+16);
+    tri[1].position=sf::Vector2f(160,int(mainmenulerp)+16);
+    tri[2].position=sf::Vector2f(0,int(mainmenulerp)+48);
+    tri[3].position=sf::Vector2f(160,int(mainmenulerp)+48);
     tri[0].texCoords=sf::Vector2f(0,0);
     tri[1].texCoords=sf::Vector2f(160,0);
     tri[2].texCoords=sf::Vector2f(0,32);
     tri[3].texCoords=sf::Vector2f(160,32);
-    text.setString("Score: "+std::to_string(player.x));
     uirt.draw(tri,&texturemap["Gameover"]);
-    text.setScale({1,1});
+    text.setString("Score: "+std::to_string(player.x));
     text.setPosition({32,float(int(mainmenulerp)+80)});
     uirt.draw(text);
-  }
+    if(mainmenuoption==0)text.setString("> Restart");
+    else text.setString("  Restart");
+    text.setPosition({48,float(int(mainmenulerp)+104)});
+    uirt.draw(text);
 
+    if(mainmenuoption==0)text.setString("  Quit");
+    else text.setString("> Quit");
+    text.setPosition({48,float(int(mainmenulerp)+120)});
+    uirt.draw(text);
+    
+  }
   
 }
 
