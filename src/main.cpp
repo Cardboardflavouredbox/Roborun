@@ -131,6 +131,7 @@ void debugset(){
 }
 
 void setgame(){//게임세팅 함수
+  score=0;
   tempmap=currentmap;
   map newthing;
   loadedmap=newthing;
