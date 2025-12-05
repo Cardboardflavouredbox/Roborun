@@ -7,11 +7,10 @@
 #include <unordered_map>
 #include <iostream>
 #include <cmath>
-sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
-sf::RenderTexture uirt({160,144});//
-auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
 char right = 0, down = 0, up = 0, left = 0, confirm = 0, cancel = 0, select = 0, start = 0, save = 0, leftclick = 0, rightclick = 0, esc = 0;//2=이번 프레임에 누름, 1=꾹 누르고 있음, 0=안 누르고 있음.
-sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
+
+struct keys{
+  static const sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   downkey = sf::Keyboard::Key::Down,
                   upkey = sf::Keyboard::Key::Up,
                   leftkey = sf::Keyboard::Key::Left,
@@ -21,7 +20,7 @@ sf::Keyboard::Key rightkey = sf::Keyboard::Key::Right,
                   selectkey = sf::Keyboard::Key::C,
                   savekey = sf::Keyboard::Key::S,
                   esckey = sf::Keyboard::Key::Escape;
-sf::View view({0.f, 0.f}, {160.f, 144.f});
+};
 bool groundcheck=false;//땅에 닿았는지 여부
 bool doublejump=true;//더블점프 가능 여부
 bool dash=true;//대시 가능 여부
@@ -39,11 +38,13 @@ char hitstop=0;//히트스탑
 int deathanim=60;
 bool placetypeground=true;
 float score=0;
-std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
-std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
-sf::Sound sound(soundmap["temp"]);
-sf::Font font;
-sf::Text text(font);
+struct assets{
+  static std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
+  static std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
+  static sf::View view;
+  static sf::Sound sound;
+  static sf::Font font;
+};
 
 float Lerp(float A, float B, float Alpha) {//선형 보간 함수
   return A * (1 - Alpha) + B * Alpha;
@@ -137,7 +138,7 @@ void setgame(){//게임세팅 함수
   loadedmap=newthing;
   player.x=0;player.y=0;
   player.yvelocity=0;
-  view.setCenter({float(player.x+64),-64});
+  assets::view.setCenter({float(player.x+64),-64});
   player.xvelocity=2;
   groundcheck=false;
   doublejump=true;
@@ -174,10 +175,10 @@ bool overlap(entity p,obstacle g)//엔티티와 장애물이 겹치는지 확인
     return true;
 }
 
-void windowset(){//윈도우 설정용 함수
-  while (std::optional event = window.pollEvent()) {
+void windowset(sf::RenderWindow* window){//윈도우 설정용 함수
+  while (std::optional event = window->pollEvent()) {
     if (event->is<sf::Event::Closed>()) {
-      window.close();
+      window->close();
     }
 
     if (auto resized = event->getIf<sf::Event::Resized>()) {
@@ -190,9 +191,9 @@ void windowset(){//윈도우 설정용 함수
         y = (float(resized->size.y) / float(resized->size.x) * 160.f);
       }
       sf::FloatRect visibleArea({(-x + 160.f) / 2, (-y + 144.f) / 2}, {x, y});
-      window.setView(sf::View(visibleArea));
-      screensizex=window.getSize().x/160.f;
-      screensizey=window.getSize().y/144.f;
+      window->setView(sf::View(visibleArea));
+      screensizex=window->getSize().x/160.f;
+      screensizey=window->getSize().y/144.f;
     }
   }
 }
@@ -234,7 +235,7 @@ void obstaclecollisioncheck(){//장애물 인식 함수
       gettinghit=true;
       doublejump=true;
       dash=true;
-      sound.setBuffer(soundmap["HitHurt"]);sound.play();
+      assets::sound.setBuffer(assets::soundmap["HitHurt"]);assets::sound.play();
       break;
       }
   }
@@ -283,7 +284,7 @@ void attackcollisioncheck(entity temp){//장애물 공격 인식 함수
       temppart.set(4,5,1,atan2(-temppart.getPosition().x+player.x,-temppart.getPosition().y+player.y+player.verty2/2)*180/3.14f,1.f,sf::PrimitiveType::TriangleStrip,sf::Color::White,true);
       particledeque.push_back(temppart);
 
-      sound.setBuffer(soundmap["SlashLand"]);sound.play();
+      assets::sound.setBuffer(assets::soundmap["SlashLand"]);assets::sound.play();
 
       break;
       }
@@ -319,7 +320,7 @@ void mainmenuupdate(){
 }
 
 void gameloopupdate() {
-  view.setCenter({Lerp(view.getCenter().x,float(player.x+64),0.5f),-64});
+  assets::view.setCenter({Lerp(assets::view.getCenter().x,float(player.x+64),0.5f),-64});
 
   if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<player.x+160){
     loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
@@ -346,7 +347,7 @@ void gameloopupdate() {
   if(player.xvelocity==2&&groundcheck)dash=true;
   if(confirm==2&&player.xvelocity<=2){//점프 키를 눌렀을 시
     floating=false;
-    if(groundcheck){sound.setBuffer(soundmap["Jump"]);sound.play();player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
+    if(groundcheck){assets::sound.setBuffer(assets::soundmap["Jump"]);assets::sound.play();player.yvelocity=-7;groundcheck=false;}//땅에 닿았을 시 점프
     else if(doublejump){//땅에 닿지 않았을시 더블 점프가 가능하다면 더블 점프
       doublejump=false;
       player.yvelocity=-7;
@@ -356,7 +357,7 @@ void gameloopupdate() {
         temp.setPosition({float(player.x+8-i*4),float(player.y)});
         particledeque.push_back(temp);
       }
-      sound.setBuffer(soundmap["Jump"]);sound.play();
+      assets::sound.setBuffer(assets::soundmap["Jump"]);assets::sound.play();
     }
   }
   else if(confirm==1){//점프 키를 꾹 눌렀을 시
@@ -376,7 +377,7 @@ void gameloopupdate() {
     }
   }
   if(cancel==2&&player.xvelocity<=2){//공격 키를 눌렀을 시
-    sound.setBuffer(soundmap["Slash"]);sound.play();
+    assets::sound.setBuffer(assets::soundmap["Slash"]);assets::sound.play();
     floating=false;
     if(groundcheck)attacking=10;//공격 변수 2로 설정 (양수일시 가로 공격)
     else attacking=-10;//공격 변수 -2로 설정 (음수일시 세로 공격)
@@ -410,7 +411,7 @@ void gameloopupdate() {
 void gameoverupdate(){
   if(deathanim>0){
     iframes=0;
-    view.setCenter({Lerp(view.getCenter().x,float(player.x),0.5f),Lerp(view.getCenter().y,float(player.y),0.5f)});
+    assets::view.setCenter({Lerp(assets::view.getCenter().x,float(player.x),0.5f),Lerp(assets::view.getCenter().y,float(player.y),0.5f)});
     deathanim--;
     if(deathanim==0)player.yvelocity=-4;
   }
@@ -453,10 +454,10 @@ void update(){
   }
 }
 
-void debugupdate(){
+void debugupdate(sf::RenderWindow* window){
   if(confirm==2&&leftclick==0&&rightclick==0)placetypeground=!placetypeground;
-  if(right==2||(cancel>0&&right>0))view.setCenter(view.getCenter()+sf::Vector2f(40,0));
-  if(left==2||(cancel>0&&left>0))view.setCenter(view.getCenter()+sf::Vector2f(-40,0));
+  if(right==2||(cancel>0&&right>0))assets::view.setCenter(assets::view.getCenter()+sf::Vector2f(40,0));
+  if(left==2||(cancel>0&&left>0))assets::view.setCenter(assets::view.getCenter()+sf::Vector2f(-40,0));
   if(save==2){
     for(int i=0;i<loadedmap.grounddeque.size();i++){
       if(loadedmap.grounddeque[i].x2<0){loadedmap.grounddeque[i].x+=loadedmap.grounddeque[i].x2;loadedmap.grounddeque[i].x2*=-1;}
@@ -485,16 +486,16 @@ void debugupdate(){
   if (leftclick==2){
     if(placetypeground){
       ground temp;
-      temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
-      temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+      temp.x = ((int)(((sf::Mouse::getPosition(*window).x)/screensizey+assets::view.getCenter().x)-80)/(int)8)*8;
+      temp.y = ((int)(((sf::Mouse::getPosition(*window).y)/screensizex+assets::view.getCenter().y)-72)/(int)8)*8;
       temp.x2 = 0;
       temp.y2 = 0;
       loadedmap.grounddeque.push_back(temp);
     }
     else{
       obstacle temp;
-      temp.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
-      temp.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+      temp.x = ((int)(((sf::Mouse::getPosition(*window).x)/screensizey+assets::view.getCenter().x)-80)/(int)8)*8;
+      temp.y = ((int)(((sf::Mouse::getPosition(*window).y)/screensizex+assets::view.getCenter().y)-72)/(int)8)*8;
       temp.x2 = 0;
       temp.y2 = 0;
       loadedmap.obstacledeque.push_back(temp);
@@ -502,23 +503,23 @@ void debugupdate(){
   }
   else if(leftclick==1){
     if(placetypeground){
-      loadedmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-loadedmap.grounddeque.back().x;
+      loadedmap.grounddeque.back().x2 = ((int)(((sf::Mouse::getPosition(*window).x)/screensizey+assets::view.getCenter().x)-80)/(int)8)*8-loadedmap.grounddeque.back().x;
       loadedmap.grounddeque.back().y2 = 1;
     }
     else{
-      loadedmap.obstacledeque.back().x2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-loadedmap.obstacledeque.back().x;
-      loadedmap.obstacledeque.back().y2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8-loadedmap.obstacledeque.back().y;
+      loadedmap.obstacledeque.back().x2 = ((int)(((sf::Mouse::getPosition(*window).x)/screensizey+assets::view.getCenter().x)-80)/(int)8)*8-loadedmap.obstacledeque.back().x;
+      loadedmap.obstacledeque.back().y2 = ((int)(((sf::Mouse::getPosition(*window).y)/screensizex+assets::view.getCenter().y)-72)/(int)8)*8-loadedmap.obstacledeque.back().y;
     }
   }
   else if(rightclick==2){
-    debugdelete.x = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8;
-    debugdelete.y = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8;
+    debugdelete.x = ((int)(((sf::Mouse::getPosition(*window).x)/screensizey+assets::view.getCenter().x)-80)/(int)8)*8;
+    debugdelete.y = ((int)(((sf::Mouse::getPosition(*window).y)/screensizex+assets::view.getCenter().y)-72)/(int)8)*8;
     debugdelete.hitboxx1=0;debugdelete.hitboxy1=0;
     debugdelete.hitboxx2=0;debugdelete.hitboxy2=0;
   }
   else if(rightclick==1){
-    debugdelete.hitboxx2 = ((int)(((sf::Mouse::getPosition(window).x)/screensizey+view.getCenter().x)-80)/(int)8)*8-debugdelete.x;
-    debugdelete.hitboxy2 = ((int)(((sf::Mouse::getPosition(window).y)/screensizex+view.getCenter().y)-72)/(int)8)*8-debugdelete.y;
+    debugdelete.hitboxx2 = ((int)(((sf::Mouse::getPosition(*window).x)/screensizey+assets::view.getCenter().x)-80)/(int)8)*8-debugdelete.x;
+    debugdelete.hitboxy2 = ((int)(((sf::Mouse::getPosition(*window).y)/screensizex+assets::view.getCenter().y)-72)/(int)8)*8-debugdelete.y;
   }
   
   if(rightclick==0&&(debugdelete.hitboxx1!=0||debugdelete.hitboxx2!=0||debugdelete.hitboxy1!=0||debugdelete.hitboxy2!=0)){
@@ -534,16 +535,16 @@ void debugupdate(){
 }
 
 void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
-  keypresscheck(rightkey,&right);
-  keypresscheck(leftkey,&left);
-  keypresscheck(upkey,&up);
-  keypresscheck(downkey,&down);
-  keypresscheck(confirmkey,&confirm);
-  keypresscheck(cancelkey,&cancel);
-  keypresscheck(startkey,&start);
-  keypresscheck(selectkey,&select);
-  keypresscheck(savekey,&save);
-  keypresscheck(esckey,&esc);
+  keypresscheck(keys::rightkey,&right);
+  keypresscheck(keys::leftkey,&left);
+  keypresscheck(keys::upkey,&up);
+  keypresscheck(keys::downkey,&down);
+  keypresscheck(keys::confirmkey,&confirm);
+  keypresscheck(keys::cancelkey,&cancel);
+  keypresscheck(keys::startkey,&start);
+  keypresscheck(keys::selectkey,&select);
+  keypresscheck(keys::savekey,&save);
+  keypresscheck(keys::esckey,&esc);
   if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
     if(leftclick==0)leftclick=2;
     else leftclick=1;
@@ -556,7 +557,7 @@ void input(){//입력을 받는 함수 (건드리지 않는게 좋음)
   else rightclick=0;
 }
 
-void mainmenurender(){
+void mainmenurender(sf::RenderTexture* rt,sf::RenderTexture* uirt){
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   tri[0].position={0,0};
   tri[1].position={160,0};
@@ -566,42 +567,42 @@ void mainmenurender(){
   tri[1].texCoords={160,0};
   tri[2].texCoords={0,144};
   tri[3].texCoords={160,144};
-  uirt.draw(tri,&texturemap["Background1"]);
+  uirt->draw(tri,&assets::texturemap["Background1"]);
 
 
-  sf::Sprite sprite(texturemap["Options"]);
+  sf::Sprite sprite(assets::texturemap["Options"]);
 
   sprite.setTextureRect({{0,0},{64,32}});
   sprite.setOrigin({32,16});
   sprite.setPosition({48,112});
   if(mainmenuoption==1){sprite.setScale({(50+mainmenulerp)/100,(50+mainmenulerp)/100});}
   else{sprite.setScale({(100-mainmenulerp)/100,(100-mainmenulerp)/100});}
-  uirt.draw(sprite);
+  uirt->draw(sprite);
   sprite.setPosition({112,112});
   sprite.setTextureRect({{0,32},{64,64}});
   if(mainmenuoption==0){sprite.setScale({(50+mainmenulerp)/100,(50+mainmenulerp)/100});}
   else sprite.setScale({(100-mainmenulerp)/100,(100-mainmenulerp)/100});
-  uirt.draw(sprite);
+  uirt->draw(sprite);
 }
 
-void gamelooprender() {//메인 게임 랜더 함수
+void gamelooprender(sf::RenderTexture* rt,sf::RenderTexture* uirt) {//메인 게임 랜더 함수
   sf::VertexArray tri(sf::PrimitiveType::TriangleStrip, 4);
   if(hp>0){
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
-    tri[0].position=sf::Vector2f(view.getCenter().x-170-(player.x/2)%340,-72-64);
-    tri[1].position=sf::Vector2f(view.getCenter().x+170-(player.x/2)%340,-72-64);
-    tri[2].position=sf::Vector2f(view.getCenter().x-170-(player.x/2)%340,72-64);
-    tri[3].position=sf::Vector2f(view.getCenter().x+170-(player.x/2)%340,72-64);
+    tri[0].position=sf::Vector2f(assets::view.getCenter().x-170-(player.x/2)%340,-72-64);
+    tri[1].position=sf::Vector2f(assets::view.getCenter().x+170-(player.x/2)%340,-72-64);
+    tri[2].position=sf::Vector2f(assets::view.getCenter().x-170-(player.x/2)%340,72-64);
+    tri[3].position=sf::Vector2f(assets::view.getCenter().x+170-(player.x/2)%340,72-64);
     tri[0].texCoords=sf::Vector2f(0,0);
     tri[1].texCoords=sf::Vector2f(340,0);
     tri[2].texCoords=sf::Vector2f(0,144);
     tri[3].texCoords=sf::Vector2f(340,144);
     for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(-340,0);
-    rt.draw(tri,&texturemap["Background1"]);
+    rt->draw(tri,&assets::texturemap["Background1"]);
     for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(340,0);
-    rt.draw(tri,&texturemap["Background1"]);
+    rt->draw(tri,&assets::texturemap["Background1"]);
     for(int i=0;i<4;i++)tri[i].position+=sf::Vector2f(340,0);
-    rt.draw(tri,&texturemap["Background1"]);
+    rt->draw(tri,&assets::texturemap["Background1"]);
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
     for(int i=0;i<loadedmap.grounddeque.size();i++){
       tri[0].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y);
@@ -612,7 +613,7 @@ void gamelooprender() {//메인 게임 랜더 함수
       tri[1].texCoords=sf::Vector2f(48,0);
       tri[2].texCoords=sf::Vector2f(0,16);
       tri[3].texCoords=sf::Vector2f(48,16);
-      rt.draw(tri,&texturemap["Tileset"]);
+      rt->draw(tri,&assets::texturemap["Tileset"]);
       tri[0].texCoords=sf::Vector2f(0,16);
       tri[1].texCoords=sf::Vector2f(48,16);
       tri[2].texCoords=sf::Vector2f(0,32);
@@ -622,7 +623,7 @@ void gamelooprender() {//메인 게임 랜더 함수
         tri[1].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+16*j);
         tri[2].position=sf::Vector2f(loadedmap.grounddeque[i].x,loadedmap.grounddeque[i].y+16*(j+1));
         tri[3].position=sf::Vector2f(loadedmap.grounddeque[i].x+loadedmap.grounddeque[i].x2,loadedmap.grounddeque[i].y+16*(1+j));
-        rt.draw(tri,&texturemap["Tileset"]);
+        rt->draw(tri,&assets::texturemap["Tileset"]);
       }
     }
     for(int i=0;i<4;i++)tri[i].color=sf::Color::Red;
@@ -631,7 +632,7 @@ void gamelooprender() {//메인 게임 랜더 함수
       tri[1].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y);
       tri[2].position=sf::Vector2f(loadedmap.obstacledeque[i].x,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
       tri[3].position=sf::Vector2f(loadedmap.obstacledeque[i].x+loadedmap.obstacledeque[i].x2,loadedmap.obstacledeque[i].y+loadedmap.obstacledeque[i].y2);
-      rt.draw(tri);
+      rt->draw(tri);
     }
     
 
@@ -650,7 +651,7 @@ void gamelooprender() {//메인 게임 랜더 함수
       tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
       tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
       tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
-      rt.draw(tri,&texturemap["Slash"]);
+      rt->draw(tri,&assets::texturemap["Slash"]);
     }
     else if(attacking<0){
       for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
@@ -667,7 +668,7 @@ void gamelooprender() {//메인 게임 랜더 함수
       tri[1].texCoords=sf::Vector2f(tempanim*32+32,0);
       tri[2].texCoords=sf::Vector2f(tempanim*32+0,32);
       tri[3].texCoords=sf::Vector2f(tempanim*32+32,32);
-      rt.draw(tri,&texturemap["Slash"]);
+      rt->draw(tri,&assets::texturemap["Slash"]);
     }
   }
 
@@ -696,14 +697,14 @@ void gamelooprender() {//메인 게임 랜더 함수
     tri[1].texCoords=sf::Vector2f((1+anim)*(player.vertx2-player.vertx),0);
     tri[2].texCoords=sf::Vector2f((anim)*(player.vertx2-player.vertx),player.verty2-player.verty);
     tri[3].texCoords=sf::Vector2f((1+anim)*(player.vertx2-player.vertx),player.verty2-player.verty);
-    rt.draw(tri,&texturemap["Player"]);
+    rt->draw(tri,&assets::texturemap["Player"]);
   }
   // for(int i=0;i<4;i++)tri[i].color=sf::Color::Green;
   // tri[0].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty);
   // tri[1].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty);
   // tri[2].position=sf::Vector2f(player.x+player.vertx,player.y+player.verty2);
   // tri[3].position=sf::Vector2f(player.x+player.vertx2,player.y+player.verty2);
-  // rt.draw(tri);
+  // rt->draw(tri);
 
   tri.resize(5);
   tri.setPrimitiveType(sf::PrimitiveType::LineStrip);
@@ -713,10 +714,13 @@ void gamelooprender() {//메인 게임 랜더 함수
   tri[2].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx2,debugdelete.y+debugdelete.hitboxy2);
   tri[3].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy2);
   tri[4].position=sf::Vector2f(debugdelete.x+debugdelete.hitboxx1,debugdelete.y+debugdelete.hitboxy1);
-  rt.draw(tri);
+  rt->draw(tri);
 
 
-  for(int i=0;i<particledeque.size();i++)if(particledeque[i].frame<particledeque[i].len)rt.draw(particledeque[i]);
+  for(int i=0;i<particledeque.size();i++)if(particledeque[i].frame<particledeque[i].len)rt->draw(particledeque[i]);
+
+  sf::Text text(assets::font);
+  text.setCharacterSize(12);
 
   if(hp>0){
     tri.resize(4);
@@ -728,7 +732,7 @@ void gamelooprender() {//메인 게임 랜더 함수
     tri[1].position=sf::Vector2f(160,0);
     tri[2].position=sf::Vector2f(0,16);
     tri[3].position=sf::Vector2f(160,16);
-    uirt.draw(tri);
+    uirt->draw(tri);
 
     for(int i=0;i<4;i++)tri[i].color=sf::Color::White;
     tri[0].position=sf::Vector2f(144,0);
@@ -762,12 +766,12 @@ void gamelooprender() {//메인 게임 랜더 함수
           tri[2].texCoords=sf::Vector2f(0,16);
           tri[3].texCoords=sf::Vector2f(16,16);
         }
-        uirt.draw(tri,&texturemap["Health"]);
+        uirt->draw(tri,&assets::texturemap["Health"]);
         for(int j=0;j<4;j++)tri[j].position-=sf::Vector2f(16,0);
     }
     text.setPosition({0,0});
     text.setString("Score: "+std::to_string((int)score));
-    uirt.draw(text);
+    uirt->draw(text);
   }
 
   if(player.yvelocity>16&&deathanim==0&&hp<1){
@@ -782,61 +786,56 @@ void gamelooprender() {//메인 게임 랜더 함수
     tri[1].texCoords=sf::Vector2f(160,0);
     tri[2].texCoords=sf::Vector2f(0,32);
     tri[3].texCoords=sf::Vector2f(160,32);
-    uirt.draw(tri,&texturemap["Gameover"]);
+    uirt->draw(tri,&assets::texturemap["Gameover"]);
     text.setString("Score: "+std::to_string((int)score));
     text.setPosition({32,float(int(mainmenulerp)+80)});
-    uirt.draw(text);
+    uirt->draw(text);
     if(mainmenuoption==0)text.setString("> Restart");
     else text.setString("  Restart");
     text.setPosition({48,float(int(mainmenulerp)+104)});
-    uirt.draw(text);
+    uirt->draw(text);
 
     if(mainmenuoption==0)text.setString("  Quit");
     else text.setString("> Quit");
     text.setPosition({48,float(int(mainmenulerp)+120)});
-    uirt.draw(text);
+    uirt->draw(text);
     
   }
   
 }
 
-void render(){
-  rt.setView(view);
-  window.clear();//원도우 클리어
-  rt.clear();//랜더 텍스쳐 클리어
-  uirt.clear(sf::Color::Transparent);//UI 랜더 텍스쳐 클리어
-  if(mainmenu)mainmenurender();
-  else gamelooprender();
+void render(sf::RenderWindow* window,sf::RenderTexture* rt,sf::RenderTexture* uirt){
+  rt->setView(assets::view);
+  window->clear();//원도우 클리어
+  rt->clear();//랜더 텍스쳐 클리어
+  uirt->clear(sf::Color::Transparent);//UI 랜더 텍스쳐 클리어
+  if(mainmenu)mainmenurender(rt,uirt);
+  else gamelooprender(rt,uirt);
 
-  rt.display();
-  sf::Sprite temp(rt.getTexture());
-  window.draw(temp);
+  rt->display();
+  sf::Sprite temp(rt->getTexture());
+  window->draw(temp);
 
-  uirt.display();
-  temp.setTexture(uirt.getTexture(),true);
-  window.draw(temp);
+  uirt->display();
+  temp.setTexture(uirt->getTexture(),true);
+  window->draw(temp);
   
-  window.display();
+  window->display();
 }
 
 int init() {//프로그램 시작시 준비 시키는 함수(?)
-  if(!texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
-  !texturemap["Background1"].loadFromFile("assets/images/Background.png")||
-  !texturemap["Options"].loadFromFile("assets/images/Options.png")||
-  !texturemap["Slash"].loadFromFile("assets/images/Slash.png")||
-  !texturemap["Tileset"].loadFromFile("assets/images/Tileset.png")||
-  !texturemap["Gameover"].loadFromFile("assets/images/Gameover.png")||
-  !texturemap["Health"].loadFromFile("assets/images/Health.png")||
-  !soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
-  !soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
-  !soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
-  !soundmap["SlashLand"].loadFromFile("assets/sound/slashland.wav")||
-  !font.openFromFile("assets/font/Galmuri11.ttf"))return -1;//텍스쳐 파일 읽는 코드
-  window.setFramerateLimit(60);//60fps로 제한
-
-
-  text.setFont(font);
-  text.setCharacterSize(12);
+  if(!assets::texturemap["Player"].loadFromFile("assets/images/Maphie.png")||
+  !assets::texturemap["Background1"].loadFromFile("assets/images/Background.png")||
+  !assets::texturemap["Options"].loadFromFile("assets/images/Options.png")||
+  !assets::texturemap["Slash"].loadFromFile("assets/images/Slash.png")||
+  !assets::texturemap["Tileset"].loadFromFile("assets/images/Tileset.png")||
+  !assets::texturemap["Gameover"].loadFromFile("assets/images/Gameover.png")||
+  !assets::texturemap["Health"].loadFromFile("assets/images/Health.png")||
+  !assets::soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
+  !assets::soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
+  !assets::soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
+  !assets::soundmap["SlashLand"].loadFromFile("assets/sound/slashland.wav")||
+  !assets::font.openFromFile("assets/font/Galmuri11.ttf"))return -1;//텍스쳐 파일 읽는 코드
 
   debugdelete.hitboxx1=0;debugdelete.hitboxx2=0;
   debugdelete.hitboxy1=0;debugdelete.hitboxy2=0;
@@ -851,14 +850,24 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   return 0;
 }
 
+std::unordered_map<std::string,sf::Texture> assets::texturemap;
+std::unordered_map<std::string,sf::SoundBuffer> assets::soundmap;
+sf::View assets::view({0.f, 0.f}, {160.f, 144.f});
+sf::Sound assets::assets::sound(assets::soundmap["temp"]);
+sf::Font assets::font;
+
 int main() {
+  sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
+  sf::RenderTexture uirt({160,144});//UI 랜더텍스쳐 (UI 그릴거 있으면 여기)
+  auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
+  window.setFramerateLimit(60);//60fps로 제한
   if(init()==-1)return 0;
   while (window.isOpen()) {
-    windowset();
+    windowset(&window);
     input();
-    if(debug)debugupdate();
+    if(debug)debugupdate(&window);
     else update();
-    render();
+    render(&window,&rt,&uirt);
   }
   return 0;
 }
