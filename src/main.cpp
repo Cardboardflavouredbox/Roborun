@@ -1,4 +1,4 @@
-// Copyright 2025 Greenbox
+// Copyright 2025 Greenbox(a.k.a Minjoon Kim)
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <glaze/glaze.hpp>
@@ -43,6 +43,7 @@ struct assets{
   static std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
   static sf::View view;
   static sf::Sound sound;
+  static sf::Music music;
   static sf::Font font;
 };
 
@@ -151,6 +152,9 @@ void setgame(){//게임세팅 함수
   attacking=0;
   hitstop=0;
   deathanim=60;
+  if(assets::music.openFromFile("assets/music/theme.ogg")){};
+  assets::music.setLooping(true);
+  assets::music.play();
 }
 
 bool overlap(entity p,ground g)//엔티티와 땅이 겹치는지 확인하는 함수
@@ -315,7 +319,7 @@ void mainmenuupdate(){
   if(confirm==2){
     mainmenu=false;
     if(mainmenuoption==1){debug=true;debugset();}
-    else debug=false;
+    else {debug=false;setgame();}
   }
 }
 
@@ -371,6 +375,7 @@ void gameloopupdate() {
     player.yvelocity=0;
     Particle temp;
     temp.set(1,30,0,180,0.5f,sf::PrimitiveType::Points,sf::Color::White,false);
+    assets::sound.setBuffer(assets::soundmap["Dash"]);assets::sound.play();
     for(int i=0;i<3;i++){
       temp.setPosition({float(player.x),float(player.y-i*4)});
       particledeque.push_back(temp);
@@ -406,6 +411,7 @@ void gameloopupdate() {
   if (player.y > 64) {
     hp=0;
   }
+  if(hp<=0)assets::music.stop();
 }
 
 void gameoverupdate(){
@@ -421,15 +427,20 @@ void gameoverupdate(){
       if(up==2)mainmenuoption=0;
       else if(down==2)mainmenuoption=1;
       else if(confirm==2){
-        if(mainmenuoption==1)mainmenu=true;
-        setgame();
+        if(mainmenuoption==1){mainmenu=true;assets::music.stop();}
+        else setgame();
         mainmenuoption=0;
       }
     }
     else{
       player.y+=player.yvelocity;
       player.yvelocity+=0.25f;
-      if(player.yvelocity>16)mainmenulerp=160;
+      if(player.yvelocity>16){
+        mainmenulerp=160;
+        if(assets::music.openFromFile("assets/music/Gameover.ogg")){};
+        assets::music.setLooping(true);
+        assets::music.play();
+        }
     }
   }
 }
@@ -530,7 +541,6 @@ void debugupdate(sf::RenderWindow* window){
 
   if(esc==2){
     mainmenu=true;
-    setgame();
   }
 }
 
@@ -569,6 +579,15 @@ void mainmenurender(sf::RenderTexture* rt,sf::RenderTexture* uirt){
   tri[3].texCoords={160,144};
   uirt->draw(tri,&assets::texturemap["Background1"]);
 
+  tri[0].position={0,16};
+  tri[1].position={160,16};
+  tri[2].position={0,52};
+  tri[3].position={160,52};
+  tri[0].texCoords={0,0};
+  tri[1].texCoords={160,0};
+  tri[2].texCoords={0,36};
+  tri[3].texCoords={160,36};
+  uirt->draw(tri,&assets::texturemap["Title"]);
 
   sf::Sprite sprite(assets::texturemap["Options"]);
 
@@ -831,10 +850,12 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   !assets::texturemap["Tileset"].loadFromFile("assets/images/Tileset.png")||
   !assets::texturemap["Gameover"].loadFromFile("assets/images/Gameover.png")||
   !assets::texturemap["Health"].loadFromFile("assets/images/Health.png")||
+  !assets::texturemap["Title"].loadFromFile("assets/images/Title.png")||
   !assets::soundmap["HitHurt"].loadFromFile("assets/sound/hithurt.wav")||
   !assets::soundmap["Jump"].loadFromFile("assets/sound/jump.wav")||
   !assets::soundmap["Slash"].loadFromFile("assets/sound/slash.wav")||
   !assets::soundmap["SlashLand"].loadFromFile("assets/sound/slashland.wav")||
+  !assets::soundmap["Dash"].loadFromFile("assets/sound/dash.wav")||
   !assets::font.openFromFile("assets/font/Galmuri11.ttf"))return -1;//텍스쳐 파일 읽는 코드
 
   debugdelete.hitboxx1=0;debugdelete.hitboxx2=0;
@@ -845,15 +866,14 @@ int init() {//프로그램 시작시 준비 시키는 함수(?)
   std::sort(loadedmap.grounddeque.begin(),loadedmap.grounddeque.end());
   std::sort(loadedmap.obstacledeque.begin(),loadedmap.obstacledeque.end());
 
-  setgame();
-
   return 0;
 }
 
 std::unordered_map<std::string,sf::Texture> assets::texturemap;
 std::unordered_map<std::string,sf::SoundBuffer> assets::soundmap;
 sf::View assets::view({0.f, 0.f}, {160.f, 144.f});
-sf::Sound assets::assets::sound(assets::soundmap["temp"]);
+sf::Sound assets::sound(assets::soundmap["temp"]);
+sf::Music assets::music;
 sf::Font assets::font;
 
 int main() {
