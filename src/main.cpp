@@ -904,8 +904,11 @@ sf::Font assets::font;
 int main() {
   sf::RenderTexture rt({160, 144});//랜더텍스쳐 (화면에 그릴거 있으면 여기)
   sf::RenderTexture uirt({160,144});//UI 랜더텍스쳐 (UI 그릴거 있으면 여기)
+  sf::Image icon;
+  if(!icon.loadFromFile("assets/images/Icon.png"))return 0;; // File/Image/Pixel
   auto window = sf::RenderWindow(sf::VideoMode({160, 144}), "Roborun");
   window.setFramerateLimit(60);//60fps로 제한
+  window.setIcon(icon.getSize(), icon.getPixelsPtr());
   if(init()==-1)return 0;
   while (window.isOpen()) {
     windowset(&window);
