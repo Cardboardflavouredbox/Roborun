@@ -38,6 +38,7 @@ char hitstop=0;//히트스탑
 int deathanim=60;
 bool placetypeground=true;
 float score=0;
+unsigned int lastx=0;
 struct assets{
   static std::unordered_map<std::string,sf::Texture> texturemap;//텍스쳐맵
   static std::unordered_map<std::string,sf::SoundBuffer> soundmap;//소리맵
@@ -128,6 +129,9 @@ entity debugdelete;//삭제판정
 entity attack;//공격판정
 
 void debugset(){
+  assets::view.setCenter({64,-64});
+  deathanim=60;
+  hp=3;
   tempmap=currentmap;
   loadedmap=currentmap;
 }
@@ -135,6 +139,8 @@ void debugset(){
 void setgame(){//게임세팅 함수
   score=0;
   tempmap=currentmap;
+  if(tempmap.obstacledeque.back().x+tempmap.obstacledeque.back().x2>tempmap.grounddeque.back().x+tempmap.grounddeque.back().x2)lastx=tempmap.obstacledeque.back().x+tempmap.obstacledeque.back().x2;
+  else lastx=tempmap.grounddeque.back().x+tempmap.grounddeque.back().x2;
   map newthing;
   loadedmap=newthing;
   player.x=0;player.y=0;
@@ -325,6 +331,23 @@ void mainmenuupdate(){
 
 void gameloopupdate() {
   assets::view.setCenter({Lerp(assets::view.getCenter().x,float(player.x+64),0.5f),-64});
+
+  if(tempmap.grounddeque.empty()&&tempmap.obstacledeque.empty()){
+    for(int i=0;i<currentmap.grounddeque.size();i++){
+      ground temp=currentmap.grounddeque[i];
+      temp.x+=lastx;
+      tempmap.grounddeque.push_back(temp);
+    }
+    for(int i=0;i<currentmap.obstacledeque.size();i++){
+      obstacle temp;
+      temp=currentmap.obstacledeque[i];
+      temp.x+=lastx;
+      tempmap.obstacledeque.push_back(temp);
+    }
+    if(tempmap.obstacledeque.back().x+tempmap.obstacledeque.back().x2>tempmap.grounddeque.back().x+tempmap.grounddeque.back().x2)lastx=tempmap.obstacledeque.back().x+tempmap.obstacledeque.back().x2;
+    else lastx=tempmap.grounddeque.back().x+tempmap.grounddeque.back().x2;
+  }
+
 
   if(!tempmap.grounddeque.empty()&&tempmap.grounddeque.front().x<player.x+160){
     loadedmap.grounddeque.push_back(tempmap.grounddeque.front());
@@ -540,7 +563,9 @@ void debugupdate(sf::RenderWindow* window){
   if(leftclick==0&&!loadedmap.obstacledeque.empty()&&loadedmap.obstacledeque.back().x2==loadedmap.obstacledeque.back().x)loadedmap.obstacledeque.pop_back();
 
   if(esc==2){
+    mainmenuoption=0;
     mainmenu=true;
+    debug=false;
   }
 }
 
